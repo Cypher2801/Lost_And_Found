@@ -18,9 +18,9 @@ app.use(cookieParser())
 //importing routes
 import userRoutes from "./src/routes/user.route.js";
 import lostItemsRoutes from "./src/routes/lost_items.routes.js";
-
+import foundItemsRoutes from "./src/routes/found_items.routes.js";
 
 app.use("/api/user", userRoutes)
 app.use("/api/lost-items", lostItemsRoutes)
-
+app.use("/api/found-items", foundItemsRoutes)
 export default app;
