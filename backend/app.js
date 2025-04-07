@@ -1,7 +1,6 @@
 import express, { urlencoded } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import db from './src/db/index.js';
 
 const app = express();
 app.use(express.json());
@@ -18,6 +17,10 @@ app.use(cookieParser())
 
 //importing routes
 import userRoutes from "./src/routes/user.route.js";
+import lostItemsRoutes from "./src/routes/lost_items.routes.js";
+
 
 app.use("/api/user", userRoutes)
+app.use("/api/lost-items", lostItemsRoutes)
+
 export default app;
