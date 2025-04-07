@@ -1,23 +1,23 @@
-import express from 'express';
+import express, { urlencoded } from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
 import db from './src/db/index.js';
 
 const app = express();
 app.use(express.json());
+app.use(cors({
+    origin : process.env.CORS_ORIGIN,
+    credentials : true
+}));
 
-// Example route to test connection
-app.get('/test', (req, res) => {
-    db.query('SELECT 1 + 1 AS solution', (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: 'Query failed' });
-        }
-        res.json({ result: results[0].solution });
-    });
-});
+app.use(express.json({limit : "16kb"}))
+app.use(urlencoded({limit : "16kb" , extended : true}))
+app.use(express.static("public"));
+app.use(cookieParser())
 
-// Start server
-const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
 
+//importing routes
+import userRoutes from "./src/routes/user.route.js";
+
+app.use("/api/user", userRoutes)
 export default app;
