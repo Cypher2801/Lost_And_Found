@@ -19,8 +19,11 @@ app.use(cookieParser())
 import userRoutes from "./src/routes/user.route.js";
 import lostItemsRoutes from "./src/routes/lost_items.routes.js";
 import foundItemsRoutes from "./src/routes/found_items.routes.js";
+import claimsRoutes from "./src/routes/claims.routes.js";
+
 
 app.use("/api/user", userRoutes)
 app.use("/api/lost-items", lostItemsRoutes)
 app.use("/api/found-items", foundItemsRoutes)
+app.use("/api/claims", claimsRoutes)
 export default app;

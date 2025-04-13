@@ -6,6 +6,24 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../utils/sendEmail.js";
 
+export const createAdmin = asyncHandler(async (req, res) => {
+
+  const { name, email, password, roll_number, phone } = req.body;
+
+  if (!name || !email || !password || !roll_number) {
+    throw new ApiError(400, "Name, email, password and roll number are required");
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  await db.query(
+    `INSERT INTO users (name, roll_number, email, password, phone, role) VALUES (?, ?, ?, ?, ?, 'admin')`,
+    [name, roll_number, email, hashedPassword, phone || null]
+  );
+
+  res.status(201).json({ message: "Admin account created successfully" });
+});
+
 export const registerUser = asyncHandler(async (req, res) => {
     try {
       const { name, email, password, roll_number, phone } = req.body;

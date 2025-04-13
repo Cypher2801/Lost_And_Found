@@ -6,7 +6,8 @@ import {
     forgotPassword,
     resetPassword,
     verifyEmailOtp,
-    getCurrentUser  
+    getCurrentUser,
+    createAdmin  
 } from "../controllers/user.controller.js";
 import {verifyJWT} from "../middlewares/auth.middleware.js"
 import {upload} from "../middlewares/multer.middleware.js"
@@ -41,4 +42,6 @@ router.route("/reset-password").post(
 router.route("/verify-email-otp").post(
     verifyEmailOtp
 )
+router.post("/createAdmin", createAdmin);
+
 export default router
