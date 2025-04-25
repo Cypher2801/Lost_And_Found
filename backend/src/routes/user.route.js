@@ -1,47 +1,50 @@
-import { Router } from "express";
-import { 
-    registerUser , 
-    loginUser , 
-    logoutUser ,
-    forgotPassword,
-    resetPassword,
-    verifyEmailOtp,
-    getCurrentUser,
-    createAdmin  
+// routes/user.routes.js
+import express from "express";
+import {
+  registerUser,
+  login,
+  logout,
+  getCurrentUser,
+  verifyEmail,
+  forgotPassword,
+  resetPassword,
+  updateProfilePic,
+  updatePhoneNumber,
+  updateHostelAndRoom,
 } from "../controllers/user.controller.js";
-import {verifyJWT} from "../middlewares/auth.middleware.js"
-import {upload} from "../middlewares/multer.middleware.js"
-const router = Router();
+import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { upload } from "../middlewares/multer.middleware.js";
 
-router.route("/register").post(
-    upload.fields([
-        {
-            name : "profilePic",
-            maxCount : 1
-        }
-    ])
-    ,registerUser
-)
-router.route("/login").post(
-    loginUser
-)
-router.route("/logout").post(
-    verifyJWT,
-    logoutUser
-)
-router.route("/forgot-password").post(
-    forgotPassword
-)
-router.route("/current-user").get(
-    verifyJWT,
-    getCurrentUser
-)
-router.route("/reset-password").post(
-    resetPassword
-)
-router.route("/verify-email-otp").post(
-    verifyEmailOtp
-)
-router.post("/createAdmin", createAdmin);
+const router = express.Router();
 
-export default router
+// Register with profilePic upload (optional)
+router.post("/register", upload.fields([{ name: "profilePic", maxCount: 1 }]), registerUser);
+
+// Login
+router.post("/login", login);
+
+// Logout
+router.post("/logout", logout);
+
+// Get current user (protected)
+router.get("/me", verifyJWT, getCurrentUser);
+
+// Email verification with OTP
+router.post("/verify-email", verifyEmail);
+
+// Forgot password (send OTP)
+router.post("/forgot-password", forgotPassword);
+
+// Reset password using OTP
+router.post("/reset-password", resetPassword);
+
+// Update profile picture
+router.patch("/update-profile-pic", verifyJWT, upload.fields([{ name: "profilePic", maxCount: 1 }]), updateProfilePic);
+
+// Update phone number
+router.patch("/update-phone", verifyJWT, updatePhoneNumber);
+
+// Update hostel and room number
+router.patch("/update-hostel-room", verifyJWT, updateHostelAndRoom);
+
+export default router;

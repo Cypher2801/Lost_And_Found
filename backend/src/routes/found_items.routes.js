@@ -1,40 +1,32 @@
-// routes/foundItems.js
+// routes/found.routes.js
+
 import express from "express";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { upload } from "../middlewares/multer.middleware.js";
 import {
   reportFoundItem,
   deleteFoundItem,
-  updateFoundItem,
+  updateFoundItemDetails,
+  updateFoundItemImages,
+  updatePickupPlace,
   getUserFoundItems,
-  getAllFoundItems,
   getFoundItemById,
-} from "../controllers/found_items.controller.js";
-import { verifyJWT } from "../middlewares/auth.middleware.js";
-import { upload } from "../middlewares/multer.middleware.js";
+  getAllFoundItems,
+  updateFoundItemSecurityQA
+} from "../controllers/found_items.controller.js"; 
 
 const router = express.Router();
 
-router.post("/report", 
-    verifyJWT, 
-    upload.fields([{ name: "image" }]), 
-    reportFoundItem
-);
-router.delete("/delete/:itemId", 
-    verifyJWT, 
-    deleteFoundItem);
-router.put("/update/:itemId", 
-    verifyJWT, 
-    upload.fields([{ name: "image" }]), 
-    updateFoundItem
-);
-router.get("/user", 
-    verifyJWT, 
-    getUserFoundItems
-);
-router.get("/getAllItems", 
-    getAllFoundItems
-);
-router.get("/getItem/:id", 
-    getFoundItemById
-);
+// Found item routes
+router.post("/report", verifyJWT, upload.fields([{ name: "photos", maxCount: 3 }]), reportFoundItem);
+router.delete("/:id", verifyJWT, deleteFoundItem);
+router.put("/updateDetails/:id", verifyJWT, updateFoundItemDetails);
+router.put("/updateImages/:id", verifyJWT, upload.fields([{ name: "photos", maxCount: 3 }]), updateFoundItemImages);
+router.put("/updatePickupLocation/:id", verifyJWT, updatePickupPlace);
+router.put("/updateSecurityQA/:id", verifyJWT, updateFoundItemSecurityQA);
+
+router.get("/mine", verifyJWT, getUserFoundItems);
+router.get("/:id", getFoundItemById);
+router.get("/", getAllFoundItems);
 
 export default router;

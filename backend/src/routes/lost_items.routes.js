@@ -1,49 +1,37 @@
-import { Router } from "express";
-import { 
-     getLostItemById,
-     getLostItemByUser,
-     getLostItems,
-     reportLostItem,
-     updateLostItem,
-     deleteLostItem
+import express from "express";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { upload } from "../middlewares/multer.middleware.js";
+import {
+  reportLostItem,
+  getLostItemById,
+  getAllLostItems,
+  getLostItemByUser,
+  deleteLostItem,
+  updateLostItemDetails,
+  updateLostItemImages
 } from "../controllers/lost_items.controller.js";
-import {verifyJWT} from "../middlewares/auth.middleware.js"
-import {upload} from "../middlewares/multer.middleware.js"
-const router = Router();
 
-router.route("/report").post(
-    verifyJWT,
-    upload.fields([
-        {
-            name : "image",
-            maxCount : 1
-        }
-    ]),
-    reportLostItem
-)
-router.route("/update/:itemId").put(
-    verifyJWT,
-    upload.fields([
-        {
-            name : "image",
-            maxCount : 1
-        }
-    ]),
-    updateLostItem    
-)
-router.route("/delete/:itemId").delete(
-    verifyJWT,
-    deleteLostItem
-)
-router.route("/get-all").get(
-    getLostItems
-)
-router.route("/findItem/:id").get(
-    getLostItemById
-)
-router.route("/user/:userId").get(
-    getLostItemByUser
-)
+const router = express.Router();
 
+// Report a new lost item
+router.post("/report", verifyJWT, upload.fields([{ name: "photos", maxCount: 3 }]), reportLostItem);
 
-export default router
+// Get a lost item by ID
+router.get("/:id", getLostItemById);
+
+// Get all lost items
+router.get("/", getAllLostItems);
+
+// Get all lost items posted by logged in user
+router.get("/user/my", verifyJWT, getLostItemByUser);
+
+// Delete a lost item
+router.delete("/:id", verifyJWT, deleteLostItem);
+
+// Update lost item details
+router.put("/update/:id", verifyJWT, updateLostItemDetails);
+
+// Update lost item images
+router.put("/update-images/:id", verifyJWT, upload.fields([{ name: "photos", maxCount: 3 }]), updateLostItemImages);
+
+export default router;
