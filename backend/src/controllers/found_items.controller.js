@@ -3,110 +3,123 @@ import db from "../db/index.js";
 import {ApiError} from "../utils/ApiError.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
-// Report Found Item
 export const reportFoundItem = asyncHandler(async (req, res) => {
-  const userId = req.user.userId;
+  const user_id = req.user.user_id;
   const {
     name,
     description,
-    foundDate,
-    foundLocation,
-    pickupLocation,
-    securityQuestion,
-    securityAnswer,
-    categoryID
+    found_date,
+    found_location,
+    pickup_location,
+    security_question,
+    security_answer_hash,
+    category_id
   } = req.body;
 
-  if (!name || !description || !foundDate || !foundLocation || !pickupLocation || !securityQuestion || !securityAnswer || !categoryID) {
+  if (
+    !name || !description || !found_date || !found_location ||
+    !pickup_location || !security_question || !security_answer_hash || !category_id
+  ) {
     throw new ApiError(400, "All fields are required to report a found item");
   }
 
-  const photoUrls = [];
-  if (req.files && req.files.photos && req.files.photos.length > 0) {
-    for (const file of req.files.photos) {
-      const result = await uploadOnCloudinary(file.path);
-      photoUrls.push(result.url);
-    }
-  } else {
+  if (!req.files || !req.files.photos || req.files.photos.length === 0) {
     throw new ApiError(400, "At least one photo is required");
   }
 
+  // Insert into FoundItems first
   const [result] = await db.query(
-    `INSERT INTO FoundItems (name, description, photo1, photo2, photo3, foundDate, foundLocation, pickupLocation, securityQuestion, securityAnswer, postedBy, categoryID)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO FoundItems (name, description, found_date, found_location, pickup_location, security_question, security_answer_hash, posted_by, category_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       name,
       description,
-      photoUrls[0],
-      photoUrls[1] || null,
-      photoUrls[2] || null,
-      foundDate,
-      foundLocation,
-      pickupLocation,
-      securityQuestion,
-      securityAnswer,
-      userId,
-      categoryID
+      found_date,
+      found_location,
+      pickup_location,
+      security_question,
+      security_answer_hash,
+      user_id,
+      category_id
     ]
   );
 
-  res.status(201).json({ message: "Found item reported successfully" });
+  const foundItemId = result.insertId; // Get newly created found_item_id
+  console.log(foundItemId);
+  // Upload photos to Cloudinary and store their URLs into FoundItemPhotos table
+  for (const file of req.files.photos) {
+    const uploadResult = await uploadOnCloudinary(file.path);
+
+    await db.query(
+      `INSERT INTO FoundItemPhotos (found_item_id, photo_url)
+       VALUES (?, ?)`,
+      [foundItemId, uploadResult.url]
+    );
+  }
+
+  res.status(201).json({ message: "Found item reported successfully", foundItemId });
 });
 
-// Delete Found Item
+// Delete Found Item (also delete its photos)
 export const deleteFoundItem = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.userId;
+  const user_id = req.user.user_id;
 
-  const [items] = await db.query("SELECT * FROM FoundItems WHERE FoundItemID = ? AND postedBy = ?", [id, userId]);
-
+  const [items] = await db.query("SELECT * FROM FoundItems WHERE found_item_id = ? AND posted_by = ?", [id, user_id]);
   if (items.length === 0) {
     throw new ApiError(404, "Item not found or unauthorized");
   }
 
-  await db.query("DELETE FROM FoundItems WHERE FoundItemID = ?", [id]);
-  res.status(200).json({ message: "Item deleted successfully" });
+  // First delete associated photos
+  await db.query("DELETE FROM FoundItemPhotos WHERE found_item_id = ?", [id]);
+
+  // Then delete the found item
+  await db.query("DELETE FROM FoundItems WHERE found_item_id = ?", [id]);
+
+  res.status(200).json({ message: "Item and its photos deleted successfully" });
 });
 
-// Update Found Item Details (excluding photos and pickupLocation)
+// Update Found Item Details (excluding photos and pickup_location)
 export const updateFoundItemDetails = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.userId;
-  const { name, description, foundDate, foundLocation, categoryID } = req.body;
+  const user_id = req.user.user_id;
+  const { name, description, found_date, found_location, category_id } = req.body;
 
-  const [items] = await db.query("SELECT * FROM FoundItems WHERE FoundItemID = ? AND postedBy = ?", [id, userId]);
+  const [items] = await db.query("SELECT * FROM FoundItems WHERE found_item_id = ? AND posted_by = ?", [id, user_id]);
   if (items.length === 0) throw new ApiError(404, "Item not found or unauthorized");
 
   await db.query(
-    `UPDATE FoundItems SET name = ?, description = ?, foundDate = ?, foundLocation = ?, categoryID = ? WHERE FoundItemID = ?`,
-    [name, description, foundDate, foundLocation, categoryID, id]
+    `UPDATE FoundItems SET name = ?, description = ?, found_date = ?, found_location = ?, category_id = ? WHERE found_item_id = ?`,
+    [name, description, found_date, found_location, category_id, id]
   );
 
   res.status(200).json({ message: "Found item details updated successfully" });
 });
 
-// Update Found Item Images
+// Update Found Item Images (delete old + add new)
 export const updateFoundItemImages = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.userId;
+  const user_id = req.user.user_id;
 
-  const [items] = await db.query("SELECT * FROM FoundItems WHERE FoundItemID = ? AND postedBy = ?", [id, userId]);
+  const [items] = await db.query("SELECT * FROM FoundItems WHERE found_item_id = ? AND posted_by = ?", [id, user_id]);
   if (items.length === 0) throw new ApiError(404, "Item not found or unauthorized");
 
-  const photoUrls = [];
-  if (req.files && req.files.photos && req.files.photos.length > 0) {
-    for (const file of req.files.photos) {
-      const result = await uploadOnCloudinary(file.path);
-      photoUrls.push(result.url);
-    }
-  } else {
+  if (!req.files || !req.files.photos || req.files.photos.length === 0) {
     throw new ApiError(400, "At least one image must be provided");
   }
 
-  await db.query(
-    `UPDATE FoundItems SET photo1 = ?, photo2 = ?, photo3 = ? WHERE FoundItemID = ?`,
-    [photoUrls[0], photoUrls[1] || null, photoUrls[2] || null, id]
-  );
+  // Delete old photos first
+  await db.query("DELETE FROM FoundItemPhotos WHERE found_item_id = ?", [id]);
+
+  // Upload and insert new photos
+  for (const file of req.files.photos) {
+    const result = await uploadOnCloudinary(file.path);
+
+    await db.query(
+      `INSERT INTO FoundItemPhotos (found_item_id, photo_url) VALUES (?, ?)`,
+      [id, result.url]
+    );
+  }
 
   res.status(200).json({ message: "Images updated successfully" });
 });
@@ -114,55 +127,88 @@ export const updateFoundItemImages = asyncHandler(async (req, res) => {
 // Update Pickup Location
 export const updatePickupPlace = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.userId;
-  const { pickupLocation } = req.body;
+  const user_id = req.user.user_id;
+  const { pickup_location } = req.body;
 
-  const [items] = await db.query("SELECT * FROM FoundItems WHERE FoundItemID = ? AND postedBy = ?", [id, userId]);
+  const [items] = await db.query("SELECT * FROM FoundItems WHERE found_item_id = ? AND posted_by = ?", [id, user_id]);
   if (items.length === 0) throw new ApiError(404, "Item not found or unauthorized");
 
-  await db.query("UPDATE FoundItems SET pickupLocation = ? WHERE FoundItemID = ?", [pickupLocation, id]);
+  await db.query("UPDATE FoundItems SET pickup_location = ? WHERE found_item_id = ?", [pickup_location, id]);
+
   res.status(200).json({ message: "Pickup location updated successfully" });
 });
 
 // Get User's Found Items
 export const getUserFoundItems = asyncHandler(async (req, res) => {
-  const userId = req.user.userId;
-  const [items] = await db.query("SELECT * FROM FoundItems WHERE postedBy = ? ORDER BY foundDate DESC", [userId]);
+  const user_id = req.user.user_id;
+  // console.log(user_id);
+  const [items] = await db.query(
+    "SELECT * FROM FoundItems WHERE posted_by = ? ORDER BY found_date DESC",
+    [user_id]
+  );
+  console.log(items);
+  for (const item of items) {
+    const [photos] = await db.query(
+      "SELECT photo_url FROM FoundItemPhotos WHERE found_item_id = ?",
+      [item.found_item_id]
+    );
+    item.photos = photos.map(photo => photo.photo_url);
+  }
 
   res.status(200).json({ items });
 });
 
-// Get Found Item by ID
+// Get Found Item by ID (with photos)
 export const getFoundItemById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const [items] = await db.query("SELECT * FROM FoundItems WHERE FoundItemID = ?", [id]);
-
+  
+  const [items] = await db.query("SELECT * FROM FoundItems WHERE found_item_id = ?", [id]);
   if (items.length === 0) throw new ApiError(404, "Item not found");
-  res.status(200).json({ item: items[0] });
+
+  const [photos] = await db.query("SELECT photo_url FROM FoundItemPhotos WHERE found_item_id = ?", [id]);
+
+  res.status(200).json({ 
+    item: { 
+      ...items[0], 
+      photos: photos.map(photo => photo.photo_url) 
+    } 
+  });
 });
 
-// Get All Found Items
+// Get All Found Items (without photos for now, or optionally photos if needed)
 export const getAllFoundItems = asyncHandler(async (req, res) => {
-  const [items] = await db.query("SELECT * FROM FoundItems ORDER BY foundDate DESC");
+  const [items] = await db.query(
+    "SELECT * FROM FoundItems ORDER BY found_date DESC"
+  );
+
+  for (const item of items) {
+    const [photos] = await db.query(
+      "SELECT photo_url FROM FoundItemPhotos WHERE found_item_id = ?",
+      [item.found_item_id]
+    );
+    item.photos = photos.map(photo => photo.photo_url);
+  }
+
   res.status(200).json({ items });
 });
+
 
 // Update Security Question and Answer
 export const updateFoundItemSecurityQA = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.userId;
-  const { securityQuestion, securityAnswer } = req.body;
+  const user_id = req.user.user_id;
+  const { security_question, security_answer_hash } = req.body;
 
-  if (!securityQuestion || !securityAnswer) {
+  if (!security_question || !security_answer_hash) {
     throw new ApiError(400, "Both question and answer are required");
   }
 
-  const [items] = await db.query("SELECT * FROM FoundItems WHERE FoundItemID = ? AND postedBy = ?", [id, userId]);
+  const [items] = await db.query("SELECT * FROM FoundItems WHERE found_item_id = ? AND posted_by = ?", [id, user_id]);
   if (items.length === 0) throw new ApiError(404, "Item not found or unauthorized");
 
   await db.query(
-    "UPDATE FoundItems SET securityQuestion = ?, securityAnswer = ? WHERE FoundItemID = ?",
-    [securityQuestion, securityAnswer, id]
+    "UPDATE FoundItems SET security_question = ?, security_answer_hash = ? WHERE found_item_id = ?",
+    [security_question, security_answer_hash, id]
   );
 
   res.status(200).json({ message: "Security question and answer updated successfully" });
