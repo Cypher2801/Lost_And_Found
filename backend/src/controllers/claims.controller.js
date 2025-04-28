@@ -1,9 +1,6 @@
-import asyncHandler from "../utils/asyncHandler.js";
-import db from "../config/db.js";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import ApiError from "../utils/ApiError.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {asyncHandler} from "../utils/asyncHandler.js";
+import db from "../db/index.js";
+import {ApiError} from "../utils/ApiError.js";
 import { sendEmail } from "../utils/sendEmail.js";
 
 // ... Existing Lost Items Controllers (unchanged)

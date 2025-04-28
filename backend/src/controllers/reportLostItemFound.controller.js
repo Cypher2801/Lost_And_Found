@@ -1,6 +1,6 @@
-import asyncHandler from "../utils/asyncHandler.js";
-import db from "../config/db.js";
-import ApiError from "../utils/ApiError.js";
+import {asyncHandler} from "../utils/asyncHandler.js";
+import db from "../db/index.js";
+import {ApiError} from "../utils/ApiError.js";
 
 // 1. Report a Lost Item Found
 export const reportLostItemFound = asyncHandler(async (req, res) => {

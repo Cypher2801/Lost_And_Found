@@ -1,6 +1,6 @@
-import asyncHandler from "../utils/asyncHandler.js";
-import db from "../config/db.js";
-import ApiError from "../utils/ApiError.js";
+import {asyncHandler} from "../utils/asyncHandler.js";
+import db from "../db/index.js";
+import {ApiError} from "../utils/ApiError.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 // ... Existing Found Items Controllers (unchanged)
