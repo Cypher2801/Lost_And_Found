@@ -11,7 +11,7 @@ const verifyJWT = asyncHandler(async (req, res, next) => {
             throw new ApiError(401, "Unauthorized request");
         }
 
-        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
         const userId = decodedToken?.user_id;
 
         if (!userId) {
@@ -19,7 +19,7 @@ const verifyJWT = asyncHandler(async (req, res, next) => {
         }
 
         const [rows] = await db.query(
-            `SELECT user_id, name, roll_number, email, phone, role, email_verified, wants_notifications, profile_pic_url 
+            `SELECT *
              FROM users 
              WHERE user_id = ?`,
             [userId]

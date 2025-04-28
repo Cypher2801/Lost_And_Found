@@ -17,8 +17,8 @@ import { upload } from "../middlewares/multer.middleware.js";
 
 const router = express.Router();
 
-// Register with profilePic upload (optional)
-router.post("/register", upload.fields([{ name: "profilePic", maxCount: 1 }]), registerUser);
+// Register with profile_pic upload (optional)
+router.post("/register", upload.fields([{ name: "profile_pic", maxCount: 1 }]), registerUser);
 
 // Login
 router.post("/login", login);
@@ -39,7 +39,7 @@ router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 
 // Update profile picture
-router.patch("/update-profile-pic", verifyJWT, upload.fields([{ name: "profilePic", maxCount: 1 }]), updateProfilePic);
+router.patch("/update-profile-pic", verifyJWT, upload.fields([{ name: "profile_pic", maxCount: 1 }]), updateProfilePic);
 
 // Update phone number
 router.patch("/update-phone", verifyJWT, updatePhoneNumber);
