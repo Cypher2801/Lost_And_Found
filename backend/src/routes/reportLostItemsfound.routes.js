@@ -4,7 +4,7 @@ import {
   reportLostItemFound,
   deleteLostItemFound,
   updateReportedLostFoundStatus
-} from "../controllers/reportedLostFound.controller.js";
+} from "../controllers/reportLostItemFound.controller.js";
 
 const router = express.Router();
 

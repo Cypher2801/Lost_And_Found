@@ -7,7 +7,7 @@ import {
   getClaimById,
   updateClaimStatus,
   deleteClaim
-} from "../controllers/claim.controller.js";
+} from "../controllers/claims.controller.js";
 
 const router = express.Router();
 
