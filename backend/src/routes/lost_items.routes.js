@@ -23,7 +23,7 @@ router.get("/:id", getLostItemById);
 router.get("/", getAllLostItems);
 
 // Get all lost items posted by logged in user
-router.get("/user/my", verifyJWT, getLostItemByUser);
+router.get("/user/me", verifyJWT, getLostItemByUser);
 
 // Delete a lost item
 router.delete("/:id", verifyJWT, deleteLostItem);

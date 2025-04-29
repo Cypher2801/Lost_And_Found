@@ -15,7 +15,7 @@ const router = express.Router();
 router.post("/create", verifyJWT, createClaim);
 
 // Get claims for a specific found item
-router.get("/item/:foundItemId", verifyJWT, getClaimsForItem);
+router.get("/item/:found_item_id", verifyJWT, getClaimsForItem);
 
 // Get all claims by the current user
 router.get("/user/my", verifyJWT, getUserClaims);

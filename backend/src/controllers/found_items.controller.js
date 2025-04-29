@@ -70,6 +70,7 @@ export const deleteFoundItem = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Item not found or unauthorized");
   }
 
+  await db.query(`DELETE FROM claims WHERE found_item_id = ?` , [id]);
   // First delete associated photos
   await db.query("DELETE FROM FoundItemPhotos WHERE found_item_id = ?", [id]);
 
@@ -141,44 +142,94 @@ export const updatePickupPlace = asyncHandler(async (req, res) => {
 // Get User's Found Items
 export const getUserFoundItems = asyncHandler(async (req, res) => {
   const user_id = req.user.user_id;
-  // console.log(user_id);
+
   const [items] = await db.query(
-    "SELECT * FROM FoundItems WHERE posted_by = ? ORDER BY found_date DESC",
+    `SELECT f.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+     FROM FoundItems f
+     JOIN Users u ON f.posted_by = u.user_id
+     WHERE f.posted_by = ?
+     ORDER BY f.found_date DESC`,
     [user_id]
   );
-  console.log(items);
+
   for (const item of items) {
     const [photos] = await db.query(
       "SELECT photo_url FROM FoundItemPhotos WHERE found_item_id = ?",
       [item.found_item_id]
     );
     item.photos = photos.map(photo => photo.photo_url);
+
+    // Create a user field
+    item.user = {
+      name: item.user_name,
+      roll_number: item.roll_number,
+      phone_number: item.phone_number,
+      hostel: item.hostel,
+      room_number: item.room_number,
+    };
+
+    // Remove separate user fields from the main object
+    delete item.user_name;
+    delete item.roll_number;
+    delete item.phone_number;
+    delete item.hostel;
+    delete item.room_number;
   }
 
   res.status(200).json({ items });
 });
 
+
 // Get Found Item by ID (with photos)
 export const getFoundItemById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  
-  const [items] = await db.query("SELECT * FROM FoundItems WHERE found_item_id = ?", [id]);
+
+  const [items] = await db.query(
+    `SELECT f.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+     FROM FoundItems f
+     JOIN Users u ON f.posted_by = u.user_id
+     WHERE f.found_item_id = ?`,
+    [id]
+  );
+
   if (items.length === 0) throw new ApiError(404, "Item not found");
 
-  const [photos] = await db.query("SELECT photo_url FROM FoundItemPhotos WHERE found_item_id = ?", [id]);
+  const [photos] = await db.query(
+    "SELECT photo_url FROM FoundItemPhotos WHERE found_item_id = ?",
+    [id]
+  );
 
-  res.status(200).json({ 
-    item: { 
-      ...items[0], 
-      photos: photos.map(photo => photo.photo_url) 
-    } 
-  });
+  const item = items[0];
+
+  const formattedItem = {
+    ...item,
+    photos: photos.map(photo => photo.photo_url),
+    user: {
+      name: item.user_name,
+      roll_number: item.roll_number,
+      phone_number: item.phone_number,
+      hostel: item.hostel,
+      room_number: item.room_number,
+    },
+  };
+
+  delete formattedItem.user_name;
+  delete formattedItem.roll_number;
+  delete formattedItem.phone_number;
+  delete formattedItem.hostel;
+  delete formattedItem.room_number;
+
+  res.status(200).json({ item: formattedItem });
 });
+
 
 // Get All Found Items (without photos for now, or optionally photos if needed)
 export const getAllFoundItems = asyncHandler(async (req, res) => {
   const [items] = await db.query(
-    "SELECT * FROM FoundItems ORDER BY found_date DESC"
+    `SELECT f.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+     FROM FoundItems f
+     JOIN Users u ON f.posted_by = u.user_id
+     ORDER BY f.found_date DESC`
   );
 
   for (const item of items) {
@@ -187,6 +238,20 @@ export const getAllFoundItems = asyncHandler(async (req, res) => {
       [item.found_item_id]
     );
     item.photos = photos.map(photo => photo.photo_url);
+
+    item.user = {
+      name: item.user_name,
+      roll_number: item.roll_number,
+      phone_number: item.phone_number,
+      hostel: item.hostel,
+      room_number: item.room_number,
+    };
+
+    delete item.user_name;
+    delete item.roll_number;
+    delete item.phone_number;
+    delete item.hostel;
+    delete item.room_number;
   }
 
   res.status(200).json({ items });

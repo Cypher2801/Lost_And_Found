@@ -1,101 +1,192 @@
-import {asyncHandler} from "../utils/asyncHandler.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import db from "../db/index.js";
-import {ApiError} from "../utils/ApiError.js";
+import { ApiError } from "../utils/ApiError.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
-
-// ... Existing Found Items Controllers (unchanged)
 
 // Report Lost Item
 export const reportLostItem = asyncHandler(async (req, res) => {
-  const userId = req.user.userId;
-  const {
-    name,
-    description,
-    lostDate,
-    lostLocation,
-    categoryID
-  } = req.body;
+  const user_id = req.user.user_id;
+  const { name, description, lost_date, lost_location, category_id } = req.body;
 
-  if (!name || !description || !lostDate || !lostLocation || !categoryID) {
+  if (!name || !description || !lost_date || !lost_location || !category_id) {
     throw new ApiError(400, "All fields are required to report a lost item");
   }
 
-  const photoUrls = [];
-  if (req.files && req.files.photos && req.files.photos.length > 0) {
-    for (const file of req.files.photos) {
-      const result = await uploadOnCloudinary(file.path);
-      photoUrls.push(result.url);
-    }
-  } else {
+  if (!req.files || !req.files.photos || req.files.photos.length === 0) {
     throw new ApiError(400, "At least one photo is required");
   }
 
   const [result] = await db.query(
-    `INSERT INTO LostItems (name, description, photo1, photo2, photo3, lostDate, lostLocation, postedBy, categoryID)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      name,
-      description,
-      photoUrls[0],
-      photoUrls[1] || null,
-      photoUrls[2] || null,
-      lostDate,
-      lostLocation,
-      userId,
-      categoryID
-    ]
+    `INSERT INTO lostitems (name, description, lost_date, lost_location, posted_by, category_id)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [name, description, lost_date, lost_location, user_id, category_id]
   );
 
-  res.status(201).json({ message: "Lost item reported successfully" });
+  const lostItemId = result.insertId;
+
+  for (const file of req.files.photos) {
+    const uploadResult = await uploadOnCloudinary(file.path);
+    await db.query(
+      `INSERT INTO lostitemphotos (lost_item_id, photo_url) VALUES (?, ?)`,
+      [lostItemId, uploadResult.url]
+    );
+  }
+
+  res.status(201).json({ message: "Lost item reported successfully", lostItemId });
 });
 
-// Get Lost Item by ID
+// Get Lost Item by ID (with photos)
+// Get Lost Item by ID (with photos and user)
 export const getLostItemById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const [items] = await db.query("SELECT * FROM LostItems WHERE LostItemID = ?", [id]);
+
+  const [items] = await db.query(`
+    SELECT l.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+    FROM lostitems l
+    JOIN users u ON l.posted_by = u.user_id
+    WHERE l.lost_item_id = ?
+  `, [id]);
 
   if (items.length === 0) throw new ApiError(404, "Item not found");
-  res.status(200).json({ item: items[0] });
+
+  const [photos] = await db.query(
+    `SELECT photo_url FROM lostitemphotos WHERE lost_item_id = ?`,
+    [id]
+  );
+
+  const item = items[0];
+  const formattedItem = {
+    ...item,
+    photos: photos.map(p => p.photo_url),
+    user: {
+      name: item.user_name,
+      roll_number: item.roll_number,
+      phone_number: item.phone_number,
+      hostel: item.hostel,
+      room_number: item.room_number
+    }
+  };
+
+  delete formattedItem.user_name;
+  delete formattedItem.roll_number;
+  delete formattedItem.phone_number;
+  delete formattedItem.hostel;
+  delete formattedItem.room_number;
+
+  res.status(200).json({ item: formattedItem });
 });
 
-// Get All Lost Items
+// Get All Lost Items (with photos)
+// Get All Lost Items (with photos and user)
 export const getAllLostItems = asyncHandler(async (req, res) => {
-  const [items] = await db.query("SELECT * FROM LostItems ORDER BY lostDate DESC");
-  res.status(200).json({ items });
+  const [items] = await db.query(`
+    SELECT l.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+    FROM lostitems l
+    JOIN users u ON l.posted_by = u.user_id
+    ORDER BY l.lost_date DESC
+  `);
+
+  const lostitems = await Promise.all(items.map(async (item) => {
+    const [photos] = await db.query(
+      `SELECT photo_url FROM lostitemphotos WHERE lost_item_id = ?`,
+      [item.lost_item_id]
+    );
+
+    const formattedItem = {
+      ...item,
+      photos: photos.map(p => p.photo_url),
+      user: {
+        name: item.user_name,
+        roll_number: item.roll_number,
+        phone_number: item.phone_number,
+        hostel: item.hostel,
+        room_number: item.room_number
+      }
+    };
+
+    delete formattedItem.user_name;
+    delete formattedItem.roll_number;
+    delete formattedItem.phone_number;
+    delete formattedItem.hostel;
+    delete formattedItem.room_number;
+
+    return formattedItem;
+  }));
+
+  res.status(200).json({ items: lostitems });
 });
 
-// Get User's Lost Items
+// Get User's Lost Items (with photos)
+// Get User's Lost Items (with photos and user)
 export const getLostItemByUser = asyncHandler(async (req, res) => {
-  const userId = req.user.userId;
-  const [items] = await db.query("SELECT * FROM LostItems WHERE postedBy = ? ORDER BY lostDate DESC", [userId]);
+  const user_id = req.user.user_id;
 
-  res.status(200).json({ items });
+  const [items] = await db.query(`
+    SELECT l.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+    FROM lostitems l
+    JOIN users u ON l.posted_by = u.user_id
+    WHERE l.posted_by = ?
+    ORDER BY l.lost_date DESC
+  `, [user_id]);
+
+  if (items.length === 0) throw new ApiError(404, "No items found for this user");
+
+  const lostitems = await Promise.all(items.map(async (item) => {
+    const [photos] = await db.query(
+      `SELECT photo_url FROM lostitemphotos WHERE lost_item_id = ?`,
+      [item.lost_item_id]
+    );
+
+    const formattedItem = {
+      ...item,
+      photos: photos.map(p => p.photo_url),
+      user: {
+        name: item.user_name,
+        roll_number: item.roll_number,
+        phone_number: item.phone_number,
+        hostel: item.hostel,
+        room_number: item.room_number
+      }
+    };
+
+    delete formattedItem.user_name;
+    delete formattedItem.roll_number;
+    delete formattedItem.phone_number;
+    delete formattedItem.hostel;
+    delete formattedItem.room_number;
+
+    return formattedItem;
+  }));
+
+  res.status(200).json({ items: lostitems });
 });
 
 // Delete Lost Item
 export const deleteLostItem = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.userId;
+  const user_id = req.user.user_id;
 
-  const [items] = await db.query("SELECT * FROM LostItems WHERE LostItemID = ? AND postedBy = ?", [id, userId]);
+  const [items] = await db.query(`SELECT * FROM lostitems WHERE lost_item_id = ? AND posted_by = ?`, [id, user_id]);
   if (items.length === 0) throw new ApiError(404, "Item not found or unauthorized");
-
-  await db.query("DELETE FROM LostItems WHERE LostItemID = ?", [id]);
+  
+  await db.query(`DELETE FROM reportedlostfound WHERE lost_item_id = ?`, [id]);
+  await db.query(`DELETE FROM lostitemphotos WHERE lost_item_id = ?`, [id]);
+  await db.query(`DELETE FROM lostitems WHERE lost_item_id = ?`, [id]);
   res.status(200).json({ message: "Lost item deleted successfully" });
 });
 
 // Update Lost Item Details (excluding photos)
 export const updateLostItemDetails = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.userId;
-  const { name, description, lostDate, lostLocation, categoryID } = req.body;
+  const user_id = req.user.user_id;
+  const { name, description, lost_date, lost_location, category_id } = req.body;
 
-  const [items] = await db.query("SELECT * FROM LostItems WHERE LostItemID = ? AND postedBy = ?", [id, userId]);
+  const [items] = await db.query(`SELECT * FROM lostitems WHERE lost_item_id = ? AND posted_by = ?`, [id, user_id]);
   if (items.length === 0) throw new ApiError(404, "Item not found or unauthorized");
 
   await db.query(
-    `UPDATE LostItems SET name = ?, description = ?, lostDate = ?, lostLocation = ?, categoryID = ? WHERE LostItemID = ?`,
-    [name, description, lostDate, lostLocation, categoryID, id]
+    `UPDATE lostitems SET name = ?, description = ?, lost_date = ?, lost_location = ?, category_id = ? WHERE lost_item_id = ?`,
+    [name, description, lost_date, lost_location, category_id, id]
   );
 
   res.status(200).json({ message: "Lost item details updated successfully" });
@@ -104,25 +195,26 @@ export const updateLostItemDetails = asyncHandler(async (req, res) => {
 // Update Lost Item Images
 export const updateLostItemImages = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.userId;
+  const user_id = req.user.user_id;
 
-  const [items] = await db.query("SELECT * FROM LostItems WHERE LostItemID = ? AND postedBy = ?", [id, userId]);
+  const [items] = await db.query(`SELECT * FROM lostitems WHERE lost_item_id = ? AND posted_by = ?`, [id, user_id]);
   if (items.length === 0) throw new ApiError(404, "Item not found or unauthorized");
 
-  const photoUrls = [];
-  if (req.files && req.files.photos && req.files.photos.length > 0) {
-    for (const file of req.files.photos) {
-      const result = await uploadOnCloudinary(file.path);
-      photoUrls.push(result.url);
-    }
-  } else {
-    throw new ApiError(400, "At least one image must be provided");
+  if (!req.files || !req.files.photos || req.files.photos.length === 0) {
+    throw new ApiError(400, "At least one photo is required");
   }
 
-  await db.query(
-    `UPDATE LostItems SET photo1 = ?, photo2 = ?, photo3 = ? WHERE LostItemID = ?`,
-    [photoUrls[0], photoUrls[1] || null, photoUrls[2] || null, id]
-  );
+  // First, delete old photos
+  await db.query(`DELETE FROM lostitemphotos WHERE lost_item_id = ?`, [id]);
 
-  res.status(200).json({ message: "Images updated successfully" });
+  // Upload new photos
+  for (const file of req.files.photos) {
+    const uploadResult = await uploadOnCloudinary(file.path);
+    await db.query(
+      `INSERT INTO lostitemphotos (lost_item_id, photo_url) VALUES (?, ?)`,
+      [id, uploadResult.url]
+    );
+  }
+
+  res.status(200).json({ message: "Lost item images updated successfully" });
 });

@@ -1,7 +1,11 @@
+// routes/reportLostItemFound.routes.js
+
 import express from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import {
   reportLostItemFound,
+  getItemsReportedByUser,
+  getReportsAboutUserLostItems,
   deleteLostItemFound,
   updateReportedLostFoundStatus
 } from "../controllers/reportLostItemFound.controller.js";
@@ -9,12 +13,18 @@ import {
 const router = express.Router();
 
 // Route to report a lost item found
-router.post("/report-lost-found", verifyJWT, reportLostItemFound);
+router.post("/", verifyJWT, reportLostItemFound);
+
+// Route to get all items reported by the logged-in user (user who found)
+router.get("/reported-by-user", verifyJWT, getItemsReportedByUser);
+
+// Route to get all reports about user's own lost items
+router.get("/about-user-lost-items", verifyJWT, getReportsAboutUserLostItems);
 
 // Route to delete a lost item found report
-router.delete("/report-lost-found/:id", verifyJWT, deleteLostItemFound);
+router.delete("/:id", verifyJWT, deleteLostItemFound);
 
 // Route to update the status of a lost item found report
-router.patch("/report-lost-found/:id/status", verifyJWT, updateReportedLostFoundStatus);
+router.patch("/status/:id", verifyJWT, updateReportedLostFoundStatus);
 
 export default router;
