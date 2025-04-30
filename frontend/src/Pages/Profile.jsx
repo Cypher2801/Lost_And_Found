@@ -11,12 +11,12 @@ import { logout } from '@/store/authSlice';
 import { useNavigate } from 'react-router-dom';
 import api from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
-
+import PersonalItemsCard from '@/components/reusables/PersonalItemsCard';
 const Profile = () => {
   // Move ALL hooks to the top of the component
   const { toast } = useToast();
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // Moved up, before any conditionals
+  const navigate = useNavigate();
   const { user, userItems, loading } = useSelector(state => state.auth);
   
   console.log("user", user);
@@ -118,22 +118,7 @@ const Profile = () => {
             ) : (
               <div className="grid md:grid-cols-2 gap-4 mt-4">
                 {userItems.lost.map(item => (
-                  <Card key={item.lost_item_id} className="overflow-hidden">
-                    <div className="flex">
-                      <img src={item.photos[0]} alt={item.title} className="h-24 w-24 object-cover" />
-                      <div className="p-4 flex-1">
-                        <div className="flex justify-between">
-                          <h3 className="font-medium">{item.name}</h3>
-                          <Badge variant="destructive">Lost</Badge>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">{item.lost_location}</p>
-                        <div className="flex justify-between items-center mt-2">
-                          <span className="text-xs text-gray-500">{new Date(item.lost_date).toLocaleDateString()}</span>
-                          <Button onClick={()=>navigate(`/my-lost-items/${item.lost_item_id}`)} variant="link" size="sm" className="h-auto p-0">View Details</Button>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
+                  <PersonalItemsCard item={item} type="lost"/>
                 ))}
               </div>
             )}
@@ -145,22 +130,7 @@ const Profile = () => {
             ) : (
               <div className="grid md:grid-cols-2 gap-4 mt-4">
                 {userItems.found.map(item => (
-                  <Card key={item.found_item_id} className="overflow-hidden">
-                    <div className="flex">
-                      <img src={item.photos[0]} alt={item.name} className="h-24 w-24 object-cover" />
-                      <div className="p-4 flex-1">
-                        <div className="flex justify-between">
-                          <h3 className="font-medium">{item.name}</h3>
-                          <Badge variant="success">Found</Badge>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">{item.found_location}</p>
-                        <div className="flex justify-between items-center mt-2">
-                          <span className="text-xs text-gray-500">{new Date(item.found_date).toLocaleDateString()}</span>
-                          <Button onClick={()=>navigate(`/my-found-items/${item.found_item_id}`)} variant="link" size="sm" className="h-auto p-0">View Details</Button>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
+                  <PersonalItemsCard item={item} type="found"/>
                 ))}
               </div>
             )}
