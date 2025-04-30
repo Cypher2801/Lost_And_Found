@@ -225,18 +225,48 @@ export const getFoundItemById = asyncHandler(async (req, res) => {
 
 // Get All Found Items (without photos for now, or optionally photos if needed)
 export const getAllFoundItems = asyncHandler(async (req, res) => {
+  let {
+    page = 1,
+    limit = 10,
+    query = "",
+    sortBy = "found_date",
+    sortType = "DESC"
+  } = req.query;
+
+  page = Number(page);
+  limit = Number(limit);
+  const offset = (page - 1) * limit;
+
+  const allowedSortFields = ["found_date", "name", "found_location"];
+  const allowedSortTypes = ["ASC", "DESC"];
+
+  if (!allowedSortFields.includes(sortBy)) sortBy = "found_date";
+  if (!allowedSortTypes.includes(sortType.toUpperCase())) sortType = "DESC";
+
+  const searchCondition = query
+    ? `WHERE f.name LIKE ? OR f.description LIKE ? OR f.found_location LIKE ?`
+    : "";
+
+  const searchParams = query ? [`%${query}%`, `%${query}%`, `%${query}%`] : [];
+
   const [items] = await db.query(
-    `SELECT f.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
-     FROM FoundItems f
-     JOIN Users u ON f.posted_by = u.user_id
-     ORDER BY f.found_date DESC`
+    `
+    SELECT f.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+    FROM founditems f
+    JOIN users u ON f.posted_by = u.user_id
+    ${searchCondition}
+    ORDER BY ${sortBy} ${sortType}
+    LIMIT ? OFFSET ?
+    `,
+    [...searchParams, limit, offset]
   );
 
   for (const item of items) {
     const [photos] = await db.query(
-      "SELECT photo_url FROM FoundItemPhotos WHERE found_item_id = ?",
+      "SELECT photo_url FROM founditemphotos WHERE found_item_id = ?",
       [item.found_item_id]
     );
+
     item.photos = photos.map(photo => photo.photo_url);
 
     item.user = {
@@ -254,7 +284,11 @@ export const getAllFoundItems = asyncHandler(async (req, res) => {
     delete item.room_number;
   }
 
-  res.status(200).json({ items });
+  res.status(200).json({
+    success: true,
+    message: "Found items fetched successfully",
+    items
+  });
 });
 
 

@@ -79,12 +79,43 @@ export const getLostItemById = asyncHandler(async (req, res) => {
 // Get All Lost Items (with photos)
 // Get All Lost Items (with photos and user)
 export const getAllLostItems = asyncHandler(async (req, res) => {
-  const [items] = await db.query(`
+  let {
+    page = 1,
+    limit = 10,
+    query = "",
+    sortBy = "lost_date",
+    sortType = "DESC"
+  } = req.query;
+
+  page = Number(page);
+  limit = Number(limit);
+  const offset = (page - 1) * limit;
+
+  // Validate allowed sort fields and sort types
+  const allowedSortFields = ["lost_date", "name", "lost_location"];
+  const allowedSortTypes = ["ASC", "DESC"];
+
+  if (!allowedSortFields.includes(sortBy)) sortBy = "lost_date";
+  if (!allowedSortTypes.includes(sortType.toUpperCase())) sortType = "DESC";
+
+  // Construct search query using FULLTEXT or fallback to LIKE
+  const searchCondition = query
+    ? `WHERE l.name LIKE ? OR l.description LIKE ? OR l.lost_location LIKE ?`
+    : "";
+
+  const searchParams = query ? [`%${query}%`, `%${query}%`, `%${query}%`] : [];
+
+  const [items] = await db.query(
+    `
     SELECT l.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
     FROM lostitems l
     JOIN users u ON l.posted_by = u.user_id
-    ORDER BY l.lost_date DESC
-  `);
+    ${searchCondition}
+    ORDER BY ${sortBy} ${sortType}
+    LIMIT ? OFFSET ?
+    `,
+    [...searchParams, limit, offset]
+  );
 
   const lostitems = await Promise.all(items.map(async (item) => {
     const [photos] = await db.query(
@@ -104,6 +135,7 @@ export const getAllLostItems = asyncHandler(async (req, res) => {
       }
     };
 
+    // Remove extra user fields
     delete formattedItem.user_name;
     delete formattedItem.roll_number;
     delete formattedItem.phone_number;
@@ -113,8 +145,13 @@ export const getAllLostItems = asyncHandler(async (req, res) => {
     return formattedItem;
   }));
 
-  res.status(200).json({ items: lostitems });
+  res.status(200).json({
+    success: true,
+    message: "Items fetched successfully",
+    items: lostitems
+  });
 });
+
 
 // Get User's Lost Items (with photos)
 // Get User's Lost Items (with photos and user)
