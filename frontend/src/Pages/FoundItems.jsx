@@ -1,35 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Search, PackageOpen, Filter, HandMetal } from 'lucide-react';
+import { format } from 'date-fns';
+import api from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
+import useCategory from '@/hooks/use-category';
 
 const FoundItems = () => {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [foundItems, setFoundItems] = useState([]);
+  // const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   
-  // Mock data for found items
-  const foundItems = [
-    { id: 1, title: 'Car Keys', description: 'Found in the library, second floor', location: 'Public Library', date: '2025-04-25', category: 'Keys' },
-    { id: 2, title: 'Black Backpack', description: 'Found at coffee shop, has laptop inside', location: 'Starbucks on Main St', date: '2025-04-23', category: 'Bags' },
-    { id: 3, title: 'Silver Necklace', description: 'Found at the park near the fountain', location: 'Central Park', date: '2025-04-22', category: 'Jewelry' },
-    { id: 4, title: 'Student ID Card', description: 'Found near university campus', location: 'State University', date: '2025-04-21', category: 'Documents' },
-    { id: 5, title: 'Samsung Phone', description: 'Found on the subway, line 3', location: 'Subway Line 3', date: '2025-04-20', category: 'Electronics' },
-    { id: 6, title: 'Umbrella', description: 'Found at the restaurant', location: 'Italian Bistro', date: '2025-04-18', category: 'Accessories' },
-  ];
-  
+  // Fetch all found items on component mount
+  useEffect(() => {
+    const fetchFoundItems = async () => {
+      try {
+        const response = await api.get('/found-items');
+        // Updated to match the actual API response structure
+        const items = response.data.items || [];
+        setFoundItems(items);
+        console.log("found_items",foundItems);
+        // Extract unique categories from category_id, filter out undefined/null values
+        // const uniqueCategories = [...new Set(items
+        //   .map(item => item.category_id)
+        //   .filter(category => category !== undefined && category !== null)
+        // )];
+        // setCategories(uniqueCategories);
+      } catch (error) {
+        console.error('Error fetching found items:', error);
+        toast({
+          title: "Failed to load found items",
+          description: error.response?.data?.message || "An unexpected error occurred",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchFoundItems();
+  }, [toast]);
+  const categories=useCategory();
+  const cats = Array.isArray(categories) ? categories : [];
   // Filter items based on search query and category
   const filteredItems = foundItems.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         item.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+    const matchesSearch = item.name && item.description && (
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      item.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    const matchesCategory = categoryFilter === 'all' || 
+      (item.category_id && item.category_id.toString() === categoryFilter);
+    
     return matchesSearch && matchesCategory;
   });
-
-  // Get unique categories for filter
-  const categories = [...new Set(foundItems.map(item => item.category))];
+  console.log("filtered items",filteredItems);
+  // Format date for display
+  const formatDate = (dateString) => {
+    try {
+      return format(new Date(dateString), 'yyyy-MM-dd');
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -65,23 +105,35 @@ const FoundItems = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            {categories.map(category => (
-              <SelectItem key={category} value={category}>{category}</SelectItem>
+            {categories.map(({category_id,category_name}) => (
+              <SelectItem key={category_id} value={String(category_id)}>
+                {category_name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
       
+      {/* Loading state */}
+      {loading && (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading found items...</p>
+        </div>
+      )}
+      
       {/* Items Grid */}
-      {filteredItems.length > 0 ? (
+      {!loading && filteredItems.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredItems.map(item => (
-            <Card key={item.id} className="overflow-hidden">
+            <Card key={item.found_item_id || item.id} className="overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle>{item.title}</CardTitle>
-                    <CardDescription>{item.date} • {item.location}</CardDescription>
+                    <CardTitle>{item.name}</CardTitle>
+                    <CardDescription>
+                      {formatDate(item.found_date)} • {item.found_location}
+                    </CardDescription>
                   </div>
                   <div className="bg-green-100 dark:bg-green-900 p-1 rounded">
                     <PackageOpen className="h-4 w-4 text-green-600 dark:text-green-300" />
@@ -89,22 +141,33 @@ const FoundItems = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm">{item.description}</p>
+                <p className="text-sm line-clamp-3">{item.description}</p>
                 <div className="mt-3">
                   <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:text-green-300">
-                    {item.category}
+                    Category: {item.category_name || 'Unknown'}
                   </span>
                 </div>
               </CardContent>
+              {item.photos && item.photos.length > 0 && (
+                <div className="px-6 pb-2">
+                  <div className="h-32 overflow-hidden rounded-md">
+                    <img 
+                      src={item.photos[0]} 
+                      alt={item.name} 
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
               <CardFooter className="pt-3">
-                <Link to={`/item/${item.id}`} className="w-full">
+                <Link to={`/found-items/${item.found_item_id || item.id}`} className="w-full">
                   <Button variant="outline" className="w-full">View Details</Button>
                 </Link>
               </CardFooter>
             </Card>
           ))}
         </div>
-      ) : (
+      ) : !loading && (
         <div className="text-center py-12">
           <PackageOpen className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-medium">No items found</h3>

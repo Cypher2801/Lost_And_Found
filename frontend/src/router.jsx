@@ -1,45 +1,126 @@
-import { createBrowserRouter } from 'react-router-dom'
-import MainLayout from './Layout/MainLayout'
-import Dashboard from './Pages/Dashboard'
-import LostItems from './Pages/LostItems'
-import FoundItems from './Pages/FoundItems'
-import ItemDetails from './Pages/ItemDetails'
-import Profile from './Pages/Profile'
-import CreateListing from './Pages/CreateListing'
-
+import { createBrowserRouter } from 'react-router-dom';
+import MainLayout from './Layout/MainLayout';
+import Dashboard from './Pages/Dashboard';
+import LostItems from './Pages/LostItems';
+import FoundItems from './Pages/FoundItems';
+import ItemDetails from './Pages/ItemDetails';
+import Profile from './Pages/Profile';
+import CreateListing from './Pages/CreateListing';
+import Register from './Pages/Auth/Register';
+import Login from './Pages/Auth/Login';
+import ProtectedRoute from './components/ProtectedRoute';
+import AuthLayout from './Layout/AuthLayout';
+import VerifyEmail from './Pages/Auth/Otp';
+import PersonalItemDetails from './Pages/PersonalItemDetails';
 export const router = createBrowserRouter([
+  {
+    path: '/login',
+    element: (
+      <AuthLayout>
+        <Login />
+      </AuthLayout>
+    )
+  },
+  {
+    path: '/register',
+    element: (
+      <AuthLayout>
+        <Register />
+      </AuthLayout>
+    )
+  },
+  {
+    path: '/verify-email',
+    element: (
+      <AuthLayout>
+        <VerifyEmail />
+      </AuthLayout>
+    )
+  },
   {
     path: '/',
     element: <MainLayout />,
     children: [
       {
         path: '/',
-        element: <Dashboard />
+        element: (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        )
       },
       {
         path: '/dashboard',
-        element: <Dashboard />
+        element: (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        )
       },
       {
         path: '/lost-items',
-        element: <LostItems />
+        element: (
+          <ProtectedRoute>
+            <LostItems />
+          </ProtectedRoute>
+        )
       },
       {
         path: '/found-items',
-        element: <FoundItems />
+        element: (
+          <ProtectedRoute>
+            <FoundItems />
+          </ProtectedRoute>
+        )
       },
       {
-        path: '/item/:id',
-        element: <ItemDetails />
+        path: '/found-items/:id',
+        element: (
+          <ProtectedRoute>
+            <ItemDetails />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/lost-items/:id',
+        element: (
+          <ProtectedRoute>
+            <ItemDetails />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/my-found-items/:id',
+        element: (
+          <ProtectedRoute>
+            <PersonalItemDetails />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/my-lost-items/:id',
+        element: (
+          <ProtectedRoute>
+            <PersonalItemDetails />
+          </ProtectedRoute>
+        )
       },
       {
         path: '/profile',
-        element: <Profile />
+        element: (
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        )
       },
       {
         path: '/create-listing',
-        element: <CreateListing />
+        element: (
+          <ProtectedRoute>
+            <CreateListing />
+          </ProtectedRoute>
+        )
       }
     ]
   }
-])
+]);
