@@ -24,7 +24,7 @@ import {
 import { format } from 'date-fns';
 import api from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
-import PersonalFoundItems from '@/components/reusables/PersonalItemsCard';
+import PersonalFoundItems from '@/components/reusables/PersonalFoundItems';
 const ItemDetailsPage = () => {
   const { toast } = useToast();
   const { id } = useParams();

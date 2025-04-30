@@ -11,14 +11,14 @@ import { logout } from '@/store/authSlice';
 import { useNavigate } from 'react-router-dom';
 import api from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
-import PersonalItemsCard from '@/components/reusables/PersonalItemsCard';
+import { Link } from 'react-router-dom';
+
 const Profile = () => {
   // Move ALL hooks to the top of the component
   const { toast } = useToast();
   const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Moved up, before any conditionals
   const { user, userItems, loading } = useSelector(state => state.auth);
-  
   console.log("user", user);
   console.log("userItems", userItems);
   
@@ -63,7 +63,7 @@ const Profile = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between">
               <div className="flex items-center">
                 <Avatar className="h-16 w-16 mr-4">
-                  <AvatarImage src={user.avatar || '/api/placeholder/80/80'} alt={user.name} />
+                  <AvatarImage src={user.profile_pic || '/api/placeholder/80/80'} alt={user.name} />
                   <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -72,9 +72,12 @@ const Profile = () => {
                 </div>
               </div>
               <div className="mt-4 md:mt-0 flex space-x-2">
-                <Button variant="outline" size="sm" className="flex items-center">
-                  <Pencil className="mr-2 h-4 w-4" /> Edit Profile
-                </Button>
+                <Link to="/edit-profile">
+                  <Button variant="outline" size="sm" className="flex items-center">
+                      <Pencil className="mr-2 h-4 w-4" /> Edit Profile
+                  </Button>
+                </Link>
+                  
                 {/* <Button variant="outline" size="sm" className="flex items-center">
                   <Settings className="mr-2 h-4 w-4" /> Settings
                 </Button> */}
@@ -118,7 +121,22 @@ const Profile = () => {
             ) : (
               <div className="grid md:grid-cols-2 gap-4 mt-4">
                 {userItems.lost.map(item => (
-                  <PersonalItemsCard item={item} type="lost"/>
+                  <Card key={item.lost_item_id} className="overflow-hidden">
+                    <div className="flex">
+                      <img src={item.photos[0]} alt={item.title} className="h-24 w-24 object-cover" />
+                      <div className="p-4 flex-1">
+                        <div className="flex justify-between">
+                          <h3 className="font-medium">{item.name}</h3>
+                          <Badge variant="destructive">Lost</Badge>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">{item.lost_location}</p>
+                        <div className="flex justify-between items-center mt-2">
+                          <span className="text-xs text-gray-500">{new Date(item.lost_date).toLocaleDateString()}</span>
+                          <Button onClick={()=>navigate(/my-lost-items/${item.lost_item_id})} variant="link" size="sm" className="h-auto p-0">View Details</Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
                 ))}
               </div>
             )}
@@ -130,7 +148,22 @@ const Profile = () => {
             ) : (
               <div className="grid md:grid-cols-2 gap-4 mt-4">
                 {userItems.found.map(item => (
-                  <PersonalItemsCard item={item} type="found"/>
+                  <Card key={item.found_item_id} className="overflow-hidden">
+                    <div className="flex">
+                      <img src={item.photos[0]} alt={item.name} className="h-24 w-24 object-cover" />
+                      <div className="p-4 flex-1">
+                        <div className="flex justify-between">
+                          <h3 className="font-medium">{item.name}</h3>
+                          <Badge variant="success">Found</Badge>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">{item.found_location}</p>
+                        <div className="flex justify-between items-center mt-2">
+                          <span className="text-xs text-gray-500">{new Date(item.found_date).toLocaleDateString()}</span>
+                          <Button onClick={()=>navigate(/my-found-items/${item.found_item_id})} variant="link" size="sm" className="h-auto p-0">View Details</Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
                 ))}
               </div>
             )}
