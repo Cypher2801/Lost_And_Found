@@ -41,9 +41,10 @@ export const getLostItemById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const [items] = await db.query(`
-    SELECT l.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+    SELECT l.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number, c.category_name
     FROM lostitems l
     JOIN users u ON l.posted_by = u.user_id
+    LEFT JOIN categories c ON l.category_id = c.category_id
     WHERE l.lost_item_id = ?
   `, [id]);
 
@@ -91,14 +92,12 @@ export const getAllLostItems = asyncHandler(async (req, res) => {
   limit = Number(limit);
   const offset = (page - 1) * limit;
 
-  // Validate allowed sort fields and sort types
   const allowedSortFields = ["lost_date", "name", "lost_location"];
   const allowedSortTypes = ["ASC", "DESC"];
 
   if (!allowedSortFields.includes(sortBy)) sortBy = "lost_date";
   if (!allowedSortTypes.includes(sortType.toUpperCase())) sortType = "DESC";
 
-  // Construct search query using FULLTEXT or fallback to LIKE
   const searchCondition = query
     ? `WHERE l.name LIKE ? OR l.description LIKE ? OR l.lost_location LIKE ?`
     : "";
@@ -107,9 +106,10 @@ export const getAllLostItems = asyncHandler(async (req, res) => {
 
   const [items] = await db.query(
     `
-    SELECT l.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+    SELECT l.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number, c.category_name
     FROM lostitems l
     JOIN users u ON l.posted_by = u.user_id
+    LEFT JOIN categories c ON l.category_id = c.category_id
     ${searchCondition}
     ORDER BY ${sortBy} ${sortType}
     LIMIT ? OFFSET ?
@@ -135,7 +135,6 @@ export const getAllLostItems = asyncHandler(async (req, res) => {
       }
     };
 
-    // Remove extra user fields
     delete formattedItem.user_name;
     delete formattedItem.roll_number;
     delete formattedItem.phone_number;
@@ -159,9 +158,10 @@ export const getLostItemByUser = asyncHandler(async (req, res) => {
   const user_id = req.user.user_id;
 
   const [items] = await db.query(`
-    SELECT l.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+    SELECT l.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number, c.category_name
     FROM lostitems l
     JOIN users u ON l.posted_by = u.user_id
+    LEFT JOIN categories c ON l.category_id = c.category_id
     WHERE l.posted_by = ?
     ORDER BY l.lost_date DESC
   `, [user_id]);
@@ -197,6 +197,7 @@ export const getLostItemByUser = asyncHandler(async (req, res) => {
 
   res.status(200).json({ items: lostitems });
 });
+
 
 // Delete Lost Item
 export const deleteLostItem = asyncHandler(async (req, res) => {

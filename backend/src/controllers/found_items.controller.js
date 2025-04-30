@@ -144,9 +144,10 @@ export const getUserFoundItems = asyncHandler(async (req, res) => {
   const user_id = req.user.user_id;
 
   const [items] = await db.query(
-    `SELECT f.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
-     FROM FoundItems f
-     JOIN Users u ON f.posted_by = u.user_id
+    `SELECT f.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number, c.category_name
+     FROM founditems f
+     JOIN users u ON f.posted_by = u.user_id
+     LEFT JOIN categories c ON f.category_id = c.category_id
      WHERE f.posted_by = ?
      ORDER BY f.found_date DESC`,
     [user_id]
@@ -154,12 +155,12 @@ export const getUserFoundItems = asyncHandler(async (req, res) => {
 
   for (const item of items) {
     const [photos] = await db.query(
-      "SELECT photo_url FROM FoundItemPhotos WHERE found_item_id = ?",
+      "SELECT photo_url FROM founditemphotos WHERE found_item_id = ?",
       [item.found_item_id]
     );
+
     item.photos = photos.map(photo => photo.photo_url);
 
-    // Create a user field
     item.user = {
       name: item.user_name,
       roll_number: item.roll_number,
@@ -168,7 +169,6 @@ export const getUserFoundItems = asyncHandler(async (req, res) => {
       room_number: item.room_number,
     };
 
-    // Remove separate user fields from the main object
     delete item.user_name;
     delete item.roll_number;
     delete item.phone_number;
@@ -185,9 +185,10 @@ export const getFoundItemById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const [items] = await db.query(
-    `SELECT f.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
-     FROM FoundItems f
-     JOIN Users u ON f.posted_by = u.user_id
+    `SELECT f.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number, c.category_name
+     FROM founditems f
+     JOIN users u ON f.posted_by = u.user_id
+     LEFT JOIN categories c ON f.category_id = c.category_id
      WHERE f.found_item_id = ?`,
     [id]
   );
@@ -195,7 +196,7 @@ export const getFoundItemById = asyncHandler(async (req, res) => {
   if (items.length === 0) throw new ApiError(404, "Item not found");
 
   const [photos] = await db.query(
-    "SELECT photo_url FROM FoundItemPhotos WHERE found_item_id = ?",
+    "SELECT photo_url FROM founditemphotos WHERE found_item_id = ?",
     [id]
   );
 
@@ -221,6 +222,7 @@ export const getFoundItemById = asyncHandler(async (req, res) => {
 
   res.status(200).json({ item: formattedItem });
 });
+
 
 
 // Get All Found Items (without photos for now, or optionally photos if needed)
@@ -251,9 +253,10 @@ export const getAllFoundItems = asyncHandler(async (req, res) => {
 
   const [items] = await db.query(
     `
-    SELECT f.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+    SELECT f.*, u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number, c.category_name
     FROM founditems f
     JOIN users u ON f.posted_by = u.user_id
+    LEFT JOIN categories c ON f.category_id = c.category_id
     ${searchCondition}
     ORDER BY ${sortBy} ${sortType}
     LIMIT ? OFFSET ?
@@ -290,6 +293,7 @@ export const getAllFoundItems = asyncHandler(async (req, res) => {
     items
   });
 });
+
 
 
 // Update Security Question and Answer
