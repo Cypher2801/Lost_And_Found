@@ -24,7 +24,7 @@ router.put("/updateDetails/:id", verifyJWT, updateFoundItemDetails);
 router.put("/updateImages/:id", verifyJWT, upload.fields([{ name: "photos", maxCount: 3 }]), updateFoundItemImages);
 router.put("/updatePickupLocation/:id", verifyJWT, updatePickupPlace);
 router.put("/updateSecurityQA/:id", verifyJWT, updateFoundItemSecurityQA);
-
+//get all found items by user
 router.get("/mine", verifyJWT, getUserFoundItems);
 router.get("/:id", getFoundItemById);
 router.get("/", getAllFoundItems);
