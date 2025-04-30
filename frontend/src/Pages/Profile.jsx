@@ -11,6 +11,7 @@ import { logout } from '@/store/authSlice';
 import { useNavigate } from 'react-router-dom';
 import api from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
 
 const Profile = () => {
   // Move ALL hooks to the top of the component
@@ -18,7 +19,6 @@ const Profile = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate(); // Moved up, before any conditionals
   const { user, userItems, loading } = useSelector(state => state.auth);
-  
   console.log("user", user);
   console.log("userItems", userItems);
   
@@ -63,7 +63,7 @@ const Profile = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between">
               <div className="flex items-center">
                 <Avatar className="h-16 w-16 mr-4">
-                  <AvatarImage src={user.avatar || '/api/placeholder/80/80'} alt={user.name} />
+                  <AvatarImage src={user.profile_pic || '/api/placeholder/80/80'} alt={user.name} />
                   <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -72,9 +72,12 @@ const Profile = () => {
                 </div>
               </div>
               <div className="mt-4 md:mt-0 flex space-x-2">
-                <Button variant="outline" size="sm" className="flex items-center">
-                  <Pencil className="mr-2 h-4 w-4" /> Edit Profile
-                </Button>
+                <Link to="/edit-profile">
+                  <Button variant="outline" size="sm" className="flex items-center">
+                      <Pencil className="mr-2 h-4 w-4" /> Edit Profile
+                  </Button>
+                </Link>
+                  
                 {/* <Button variant="outline" size="sm" className="flex items-center">
                   <Settings className="mr-2 h-4 w-4" /> Settings
                 </Button> */}

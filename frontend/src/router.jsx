@@ -12,6 +12,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AuthLayout from './Layout/AuthLayout';
 import VerifyEmail from './Pages/Auth/Otp';
 import PersonalItemDetails from './Pages/PersonalItemDetails';
+import EditProfile from './Pages/EditProfile';
+
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -118,6 +120,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <CreateListing />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path : "/edit-profile",
+        element : (
+          <ProtectedRoute>
+            <EditProfile />
           </ProtectedRoute>
         )
       }

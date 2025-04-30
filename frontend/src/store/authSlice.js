@@ -9,7 +9,7 @@ export const fetchProfile=createAsyncThunk(
             const [userRes,lostRes,foundRes]=await Promise.all([
                 api.get('/user/me'),
                 api.get('/lost-items/user/me'),
-                api.get('found-items/mine')
+                api.get('/found-items/mine')
             ]);
             return {
                 user:userRes.data.user,
