@@ -11,6 +11,7 @@ import {
   updateProfilePic,
   updatePhoneNumber,
   updateHostelAndRoom,
+  getDashboardCounts
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -46,5 +47,7 @@ router.patch("/update-phone", verifyJWT, updatePhoneNumber);
 
 // Update hostel and room number
 router.patch("/update-hostel-room", verifyJWT, updateHostelAndRoom);
+
+router.get("/getDashboardCounts", verifyJWT, getDashboardCounts);
 
 export default router;

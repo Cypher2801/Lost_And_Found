@@ -1,44 +1,61 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { useNavigate, Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { Link } from "react-router-dom";
-import axios from "axios";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/services/api";
+
 const Login = () => {
-  const { toast } = useToast(); // Proper use of useToast hook
+  const { toast } = useToast();
+  const navigate = useNavigate(); // Use React Router's navigate
   const [loading, setLoading] = useState(false);
-  const form = useForm({
-    defaultValues: {
-      email: "",
-      password: ""
-    }
+  const [formData, setFormData] = useState({
+    email: "",
+    password: ""
   });
 
-  const onSubmit = async (values) => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
     setLoading(true);
+    
     try {
-      const { data } = await api.post("/user/login", values);
-    //   localStorage.setItem("token", data.token);
+      console.log("Login attempt with:", formData);
+      const { data } = await api.post("/user/login", formData);
+      
+      // Save token if your API returns one
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
+      
       toast({
         title: "Login successful",
         description: "Redirecting to dashboard...",
       });
+      
+      // Use setTimeout to allow the toast to be visible
       setTimeout(() => {
-        window.location.href = "/dashboard";
+        navigate("/dashboard"); // Use React Router's navigate instead of window.location
       }, 1000);
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
-        description: error.response?.data?.message || "An error occurred",
+        description: error.response?.data?.message || "An error occurred during login",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -47,59 +64,47 @@ const Login = () => {
         <CardTitle className="text-2xl">Welcome back</CardTitle>
         <CardDescription>Enter your credentials to access your account</CardDescription>
       </CardHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
+      <form onSubmit={onSubmit}>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
               name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <Label>Email</Label>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="your@email.com"
-                      {...field}
-                      className="dark:border-gray-600"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              type="email"
+              placeholder="your@email.com"
+              value={formData.email}
+              onChange={handleChange}
+              className="dark:border-gray-600"
+              required
             />
-            <FormField
-              control={form.control}
+          </div>
+          <div>
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
               name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <Label>Password</Label>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      {...field}
-                      className="dark:border-gray-600"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              type="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={handleChange}
+              className="dark:border-gray-600"
+              required
             />
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
-            </Button>
-            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
-                Register here
-              </Link>
-            </div>
-          </CardFooter>
-        </form>
-      </Form>
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-4">
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Signing in..." : "Sign in"}
+          </Button>
+          <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+            Don't have an account?{" "}
+            <Link to="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
+              Register here
+            </Link>
+          </div>
+        </CardFooter>
+      </form>
     </Card>
   );
 };

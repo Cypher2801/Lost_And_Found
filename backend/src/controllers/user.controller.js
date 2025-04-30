@@ -238,3 +238,16 @@ export const updateHostelAndRoom = asyncHandler(async (req, res) => {
   await db.query("UPDATE Users SET hostel = ?, room_number = ? WHERE user_id = ?", [hostel, room_number, user_id]);
   res.status(200).json({ message: "Hostel and room number updated" });
 });
+
+
+export const getDashboardCounts = asyncHandler(async (req, res) => {
+  const [[{ lost_count }]] = await db.query(`SELECT COUNT(*) AS lost_count FROM lostitems`);
+  const [[{ found_count }]] = await db.query(`SELECT COUNT(*) AS found_count FROM founditems`);
+  const [[{ user_count }]] = await db.query(`SELECT COUNT(*) AS user_count FROM users`);
+
+  res.status(200).json({
+    lost_items: lost_count,
+    found_items: found_count,
+    users: user_count
+  });
+});
