@@ -11,14 +11,14 @@ export const reportFoundItem = asyncHandler(async (req, res) => {
     found_date,
     found_location,
     pickup_location,
-    security_question,
-    security_answer_hash,
+    security_question = "none",
+    security_answer_hash = "none",
     category_id
   } = req.body;
 
   if (
     !name || !description || !found_date || !found_location ||
-    !pickup_location || !security_question || !security_answer_hash || !category_id
+    !pickup_location || !category_id
   ) {
     throw new ApiError(400, "All fields are required to report a found item");
   }

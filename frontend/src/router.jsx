@@ -18,6 +18,8 @@ import ItemClaims from './Pages/ItemClaims';
 import { Item } from '@radix-ui/react-radio-group';
 import MyClaims from './Pages/MyClaims';
 import LostItemReports from './Pages/LostItemReports';
+import MyReports from './Pages/MyReports';
+import ForgotPassword from './Pages/Auth/ForgotPassword';
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -40,6 +42,14 @@ export const router = createBrowserRouter([
     element: (
       <AuthLayout>
         <VerifyEmail />
+      </AuthLayout>
+    )
+  },
+  {
+    path: '/forgot-password',
+    element: (
+      <AuthLayout>
+        <ForgotPassword />
       </AuthLayout>
     )
   },
@@ -168,10 +178,10 @@ export const router = createBrowserRouter([
         )
       },
       {
-        path:"/my-found-claims",
+        path:"/my-reports",
         element:(
           <ProtectedRoute>
-          <MyClaims />
+          <MyReports />
           </ProtectedRoute>
         )
       }

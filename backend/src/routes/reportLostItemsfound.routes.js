@@ -17,7 +17,7 @@ const router = express.Router();
 router.post("/", verifyJWT, reportLostItemFound);
 
 // Route to get all items reported by the logged-in user (user who found)
-router.get("/reported-by-user", verifyJWT, getItemsReportedByUser);
+router.get("/user/my", verifyJWT, getItemsReportedByUser);
 
 // Route to get all reports about user's own lost items
 router.get("/about-user-lost-items", verifyJWT, getReportsAboutUserLostItems);

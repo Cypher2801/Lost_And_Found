@@ -26,6 +26,8 @@ import api from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import ClaimForm from './ClaimForm';
 import FoundClaimForm from './FoundClaimForm';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProfile } from '@/store/authSlice';
 
 const ItemDetailsPage = () => {
   const { toast } = useToast();
@@ -35,7 +37,8 @@ const ItemDetailsPage = () => {
   const [error, setError] = useState(null);
   const [isClaimFormOpen, setIsClaimFormOpen] = useState(false);
   const [ isReportLostFoundFormOpen, setIsReportLostFoundFormOpen]=useState(false);
-  
+  const dispatch=useDispatch();
+  const {user} = useSelector(state => state.auth);
   // Determine if we're viewing a lost or found item based on the URL
   const isFoundItem = window.location.pathname.includes('/found-items/');
   const apiEndpoint = isFoundItem ? `/found-items/${id}` : `/lost-items/${id}`;
@@ -59,6 +62,7 @@ const ItemDetailsPage = () => {
         });
       } finally {
         setLoading(false);
+        console.log(item)
       }
     };
     
@@ -258,7 +262,10 @@ const ItemDetailsPage = () => {
             <CardFooter>
               {item.user && item.user.phone_number && (
                 <Button className="w-full" variant="secondary" 
-                  onClick={() => window.open(`https://wa.me/${item.user.phone_number.replace(/\D/g, '')}`, '_blank')}>
+                onClick={() => {
+                  const phoneNumber = `91${item.user.phone_number}`; // prepend country code
+                  window.open(`https://wa.me/${phoneNumber}`, '_blank');
+                }}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" 
                     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" 
                     className="mr-2">
@@ -278,14 +285,18 @@ const ItemDetailsPage = () => {
             <CardHeader>
               <CardTitle className="text-lg">Actions</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            {user && user.id !== item.posted_by ? (<CardContent className="space-y-2">
               <Button onClick={handleClaimClick} className="w-full">
                 {isFoundItem ? 'I Lost This Item' : 'I Found This Item'}
               </Button>
-              <Button variant="outline" className="w-full">
-                Report Listing
+            </CardContent>) : (
+              <CardContent className="space-y-2">
+              <Button onClick={() => navigate(`${!isFoundItem ? `/item-found-claims/${item.lost_item_id}`
+                          : `/item-claims/${item.found_item_id}`}`)} className="w-full">
+                {isFoundItem ? 'See Claims' : 'See Reports'}
               </Button>
             </CardContent>
+            )}
           </Card>
         </div>
       </div>

@@ -46,8 +46,6 @@ const CreateListing = () => {
     date: null,
     location: '',
     pickupLocation: '',
-    securityQA: '',
-    securityQAAnswer: '',
     photos: [],
   });
   const [errors, setErrors] = useState({});
@@ -120,10 +118,6 @@ const CreateListing = () => {
     if (formData.status === 'found') {
       if (!formData.pickupLocation.trim()) 
         newErrors.pickupLocation = 'Pickup location is required for found items';
-      if (!formData.securityQA.trim())
-        newErrors.securityQA = 'Security question is required for found items';
-      if (!formData.securityQAAnswer.trim())
-        newErrors.securityQAAnswer = 'Security answer is required for found items';
     }
     
     setErrors(newErrors);
@@ -147,8 +141,6 @@ const CreateListing = () => {
       formDataToSend.append('found_date', formData.date);
       formDataToSend.append('found_location', formData.location);
       formDataToSend.append('pickup_location', formData.pickupLocation);
-      formDataToSend.append('security_question', formData.securityQA);
-      formDataToSend.append('security_answer_hash', hashAnswer(formData.securityQAAnswer));
     } else {
       // Fields specific to lost items - exact field names expected by backend
       formDataToSend.append('lost_date', formData.date);
@@ -337,7 +329,7 @@ const CreateListing = () => {
                   )}
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                {/* <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="securityQA">Security Question</Label>
                     <Input
@@ -366,7 +358,7 @@ const CreateListing = () => {
                       <p className="text-sm text-red-500">{errors.securityQAAnswer}</p>
                     )}
                   </div>
-                </div>
+                </div> */}
               </>
             )}
 

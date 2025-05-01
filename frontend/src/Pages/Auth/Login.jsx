@@ -46,7 +46,7 @@ const Login = () => {
       
       // Use setTimeout to allow the toast to be visible
       setTimeout(() => {
-        navigate("/dashboard"); // Use React Router's navigate instead of window.location
+        navigate("/dashboard");
       }, 1000);
     } catch (error) {
       console.error("Login error:", error);
@@ -103,6 +103,11 @@ const Login = () => {
             Don't have an account?{" "}
             <Link to="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
               Register here
+            </Link>
+          </div>
+          <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+            <Link to="/forgot-password" className="text-blue-600 dark:text-blue-400 hover:underline">
+              Forgot Password
             </Link>
           </div>
         </CardFooter>

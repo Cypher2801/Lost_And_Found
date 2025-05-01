@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { ChevronLeft, Eye, Trash2, Clock, Calendar } from 'lucide-react';
+import { ChevronLeft, Eye, Trash2, Clock, Calendar, User, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 
 const MyClaims = () => {
@@ -25,8 +25,8 @@ const MyClaims = () => {
   const fetchClaims = async () => {
     try {
       const response = await api.get('/claims/user/my');
-      console.log("claims",response.data.claims);
       setClaims(response.data.claims);
+      console.log("my claims", claims);
     } catch (err) {
       console.error("Error fetching claims:", err);
       toast({
@@ -116,6 +116,11 @@ const MyClaims = () => {
                       Claimed {format(new Date(claim.created_at), 'MMM d, yyyy')}
                     </span>
                   </div>
+                  {claim.message && (
+                    <div className="mt-2 text-sm italic text-gray-600">
+                      "{claim.message}"
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               
@@ -134,15 +139,26 @@ const MyClaims = () => {
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-semibold mb-1">Your Claim</h3>
+                    <h3 className="text-sm font-semibold mb-1">Finder Information</h3>
                     <div className="text-sm">
-                      <p><strong>Security Question:</strong> {claim.foundItem?.security_question}</p>
-                      <p><strong>Your Answer:</strong> {claim.security_answer_attempt}</p>
-                      {claim.message && (
+                      <p className="flex items-center">
+                        <User className="h-3 w-3 mr-1" />
+                        <strong>Found by:</strong> {claim.foundItem?.user?.name || "Anonymous"}
+                      </p>
+                      {claim.foundItem?.user?.phone_number && (
                         <p className="mt-1">
-                          <strong>Your Message:</strong> {claim.message}
+                          <strong>Contact:</strong> {claim.foundItem?.user?.phone_number}
                         </p>
                       )}
+                      {claim.foundItem?.found_location && (
+                        <p className="mt-1 flex items-center">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          <strong>Location:</strong> {claim.foundItem?.found_location}
+                        </p>
+                      )}
+                      {/* <p className="mt-1">
+                        <strong>Security Question:</strong> {claim.foundItem?.security_question}
+                      </p> */}
                     </div>
                   </div>
                 </div>

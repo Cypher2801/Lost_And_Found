@@ -59,49 +59,96 @@ export const reportLostItemFound = asyncHandler(async (req, res) => {
 
 export const getItemsReportedByUser = asyncHandler(async (req, res) => {
   const user_id = req.user.user_id;
-
+  
   const [reports] = await db.query(
-    `SELECT * FROM reportedlostfound WHERE user_who_found = ? ORDER BY created_at DESC`,
+    `SELECT r.*, 
+            l.name AS item_name, 
+            l.description AS item_description, 
+            l.lost_date, 
+            l.lost_location, 
+            l.category_id,
+            l.posted_by,
+            owner.name AS owner_name, 
+            owner.roll_number AS owner_roll, 
+            owner.phone_number AS owner_phone, 
+            owner.hostel AS owner_hostel, 
+            owner.room_number AS owner_room,
+            finder.name AS finder_name,
+            finder.roll_number AS finder_roll,
+            finder.phone_number AS finder_phone,
+            finder.hostel AS finder_hostel,
+            finder.room_number AS finder_room
+     FROM reportedlostfound r
+     JOIN lostitems l ON r.lost_item_id = l.lost_item_id
+     JOIN users owner ON l.posted_by = owner.user_id
+     JOIN users finder ON r.user_who_found = finder.user_id
+     WHERE r.user_who_found = ?
+     ORDER BY r.created_at DESC`,
     [user_id]
   );
 
-  const detailedReports = await Promise.all(
+  // Get photos for each lost item
+  const formattedReports = await Promise.all(
     reports.map(async (report) => {
-      // Fetch lost item details
-      const [lostItems] = await db.query(
-        `SELECT * FROM lostitems WHERE lost_item_id = ?`,
+      const [photoRows] = await db.query(
+        `SELECT photo_url FROM lostitemphotos WHERE lost_item_id = ?`,
         [report.lost_item_id]
       );
-
-      const lostItem = lostItems[0] || null;
-
-      let photos = [];
-      if (lostItem) {
-        const [photoRows] = await db.query(
-          `SELECT photo_url FROM lostitemphotos WHERE lost_item_id = ?`,
-          [lostItem.lost_item_id]
-        );
-        photos = photoRows.map(photo => photo.photo_url);
-
-        // Fetch user who posted the lost item
-        const [userRows] = await db.query(
-          `SELECT name, roll_number, phone_number, hostel, room_number FROM users WHERE user_id = ?`,
-          [lostItem.posted_by]
-        );
-
-        lostItem.user = userRows[0] || null;
-        lostItem.photos = photos;
-      }
-
+      
+      const photos = photoRows.map(photo => photo.photo_url);
+      
+      const { 
+        item_name, 
+        item_description, 
+        lost_date, 
+        lost_location, 
+        category_id,
+        posted_by,
+        owner_name, 
+        owner_roll, 
+        owner_phone, 
+        owner_hostel, 
+        owner_room,
+        finder_name,
+        finder_roll,
+        finder_phone,
+        finder_hostel,
+        finder_room,
+        ...reportData 
+      } = report;
+      
       return {
-        ...report,
-        lost_item: lostItem
+        ...reportData,
+        user: {
+          name: finder_name,
+          roll_number: finder_roll,
+          phone_number: finder_phone,
+          hostel: finder_hostel,
+          room_number: finder_room
+        },
+        lostItem: {
+          name: item_name,
+          description: item_description,
+          lost_date,
+          lost_location,
+          category_id,
+          posted_by,
+          photos,
+          user: {
+            name: owner_name,
+            roll_number: owner_roll,
+            phone_number: owner_phone,
+            hostel: owner_hostel,
+            room_number: owner_room
+          }
+        }
       };
     })
   );
 
-  res.status(200).json({ reports: detailedReports });
+  res.status(200).json({ reports: formattedReports });
 });
+
 
 export const getReportsAboutUserLostItems = asyncHandler(async (req, res) => {
   const user_id = req.user.user_id;
