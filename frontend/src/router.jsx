@@ -13,7 +13,11 @@ import AuthLayout from './Layout/AuthLayout';
 import VerifyEmail from './Pages/Auth/Otp';
 import PersonalItemDetails from './Pages/PersonalItemDetails';
 import EditProfile from './Pages/EditProfile';
-
+import ClaimForm from './Pages/ClaimForm';
+import ItemClaims from './Pages/ItemClaims';
+import { Item } from '@radix-ui/react-radio-group';
+import MyClaims from './Pages/MyClaims';
+import LostItemReports from './Pages/LostItemReports';
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -128,6 +132,46 @@ export const router = createBrowserRouter([
         element : (
           <ProtectedRoute>
             <EditProfile />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path:"/claims-form",
+        element:(
+          <ProtectedRoute>
+            <ClaimForm />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path:"/item-claims/:found_item_id",
+        element:(
+          <ProtectedRoute>
+            <ItemClaims />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path:"/item-found-claims/:lost_item_id",
+        element:(
+          <ProtectedRoute>
+            <LostItemReports />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path:"/my-claims",
+        element:(
+          <ProtectedRoute>
+          <MyClaims />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path:"/my-found-claims",
+        element:(
+          <ProtectedRoute>
+          <MyClaims />
           </ProtectedRoute>
         )
       }

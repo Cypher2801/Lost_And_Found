@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/services/api";
-
+import { useDispatch } from "react-redux";
+import { fetchProfile } from "@/store/authSlice";
 const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate(); // Use React Router's navigate
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
   const [formData, setFormData] = useState({
     email: "",
     password: ""
@@ -31,11 +33,11 @@ const Login = () => {
     try {
       console.log("Login attempt with:", formData);
       const { data } = await api.post("/user/login", formData);
-      
+      dispatch(fetchProfile())
       // Save token if your API returns one
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-      }
+      // if (data.token) {
+      //   localStorage.setItem("token", data.token);
+      // }
       
       toast({
         title: "Login successful",

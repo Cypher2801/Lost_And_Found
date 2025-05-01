@@ -160,9 +160,10 @@ const FoundItems = () => {
                 </div>
               )}
               <CardFooter className="pt-3">
+                {item.status==="Resolved"?(<Button variant="outline" className="bg-green-700 text-white font-bold w-full">Resolved</Button>):(
                 <Link to={`/found-items/${item.found_item_id || item.id}`} className="w-full">
                   <Button variant="outline" className="w-full">View Details</Button>
-                </Link>
+                </Link>)}
               </CardFooter>
             </Card>
           ))}

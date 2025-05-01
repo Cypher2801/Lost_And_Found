@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   Card, 
   CardContent, 
@@ -24,19 +24,24 @@ import {
 import { format } from 'date-fns';
 import api from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
-import PersonalFoundItems from '@/components/reusables/PersonalFoundItems';
+import ClaimForm from './ClaimForm';
+import FoundClaimForm from './FoundClaimForm';
+
 const ItemDetailsPage = () => {
   const { toast } = useToast();
   const { id } = useParams();
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isClaimFormOpen, setIsClaimFormOpen] = useState(false);
+  const [ isReportLostFoundFormOpen, setIsReportLostFoundFormOpen]=useState(false);
   
   // Determine if we're viewing a lost or found item based on the URL
   const isFoundItem = window.location.pathname.includes('/found-items/');
   const apiEndpoint = isFoundItem ? `/found-items/${id}` : `/lost-items/${id}`;
   const returnUrl = isFoundItem ? '/found-items' : '/lost-items';
   const itemType = isFoundItem ? 'found' : 'lost';
+  const navigate = useNavigate();
   
   useEffect(() => {
     const fetchItemDetails = async () => {
@@ -59,6 +64,25 @@ const ItemDetailsPage = () => {
     
     fetchItemDetails();
   }, [apiEndpoint, id, itemType, toast]);
+  
+  const handleClaimClick = () => {
+    if (isFoundItem) {
+      setIsClaimFormOpen(true);
+    } else{
+      // Navigate to a different page or show different dialog for lost items
+      setIsReportLostFoundFormOpen(true);
+    }
+  };
+
+  const handleClaimSuccess = () => {
+    toast({
+      title: "Claim Submitted",
+      description: "Your claim has been submitted successfully!",
+      className: "bg-green-700 text-white border border-green-300"
+    });
+    // Optionally refresh item data after claim
+    // fetchItemDetails();
+  };
   
   // Format date for display
   const formatDate = (dateString) => {
@@ -232,21 +256,21 @@ const ItemDetailsPage = () => {
               )}
             </CardContent>
             <CardFooter>
-  {item.user && item.user.phone_number && (
-    <Button className="w-full" variant="secondary" 
-      onClick={() => window.open(`https://wa.me/${item.user.phone_number.replace(/\D/g, '')}`, '_blank')}>
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" 
-        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" 
-        className="mr-2">
-        <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" />
-        <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1Z" />
-        <path d="M14 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1Z" />
-        <path d="M9.5 15.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 0-1h-4a.5.5 0 0 0-.5.5Z" />
-      </svg>
-      WhatsApp
-    </Button>
-  )}
-</CardFooter>
+              {item.user && item.user.phone_number && (
+                <Button className="w-full" variant="secondary" 
+                  onClick={() => window.open(`https://wa.me/${item.user.phone_number.replace(/\D/g, '')}`, '_blank')}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" 
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" 
+                    className="mr-2">
+                    <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" />
+                    <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1Z" />
+                    <path d="M14 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1Z" />
+                    <path d="M9.5 15.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 0-1h-4a.5.5 0 0 0-.5.5Z" />
+                  </svg>
+                  WhatsApp
+                </Button>
+              )}
+            </CardFooter>
           </Card>
           
           {/* Actions */}
@@ -255,7 +279,7 @@ const ItemDetailsPage = () => {
               <CardTitle className="text-lg">Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button className="w-full">
+              <Button onClick={handleClaimClick} className="w-full">
                 {isFoundItem ? 'I Lost This Item' : 'I Found This Item'}
               </Button>
               <Button variant="outline" className="w-full">
@@ -265,6 +289,24 @@ const ItemDetailsPage = () => {
           </Card>
         </div>
       </div>
+
+      {/* Claim Form Dialog */}
+      {isFoundItem && (
+        <ClaimForm 
+          foundItem={item}
+          isOpen={isClaimFormOpen}
+          onClose={() => setIsClaimFormOpen(false)}
+          onSuccess={handleClaimSuccess}
+        />
+      )}
+      {!isFoundItem && (
+        <FoundClaimForm
+          lostItem={item}
+          isOpen={isReportLostFoundFormOpen}
+          onClose={()=>setIsReportLostFoundFormOpen(false)}
+          onSuccess={handleClaimSuccess}
+          />
+      )}
     </div>
   );
 };

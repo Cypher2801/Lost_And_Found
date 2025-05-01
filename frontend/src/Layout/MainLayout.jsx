@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '@/store/authSlice';
+import { fetchProfile, logout } from '@/store/authSlice';
 import api from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -75,6 +75,7 @@ const MainLayout = () => {
     { path: '/found-items', label: 'Found Items', icon: <PackageOpen className="mr-2 h-4 w-4" /> },
     { path: '/create-listing', label: 'Create Listing', icon: <PlusCircle className="mr-2 h-4 w-4" /> },
     { path: '/profile', label: 'Profile', icon: <User className="mr-2 h-4 w-4" /> },
+    {path:'/my-claims',label:'My Claims',icon: <User className="mr-2 h-4 w-4" /> }
   ];
 
   // Determine the current page title based on path
