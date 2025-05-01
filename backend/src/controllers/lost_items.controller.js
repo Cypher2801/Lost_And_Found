@@ -37,6 +37,16 @@ export const reportLostItem = asyncHandler(async (req, res) => {
 
 // Get Lost Item by ID (with photos)
 // Get Lost Item by ID (with photos and user)
+// Utility function to get status from reportedlostfound
+const getLostItemStatus = async (lost_item_id) => {
+  const [rows] = await db.query(
+    `SELECT status FROM reportedlostfound WHERE lost_item_id = ? AND status = 'Returned' LIMIT 1`,
+    [lost_item_id]
+  );
+  return rows.length > 0 ? 'Resolved' : 'Pending';
+};
+
+// Get Lost Item by ID
 export const getLostItemById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -56,8 +66,11 @@ export const getLostItemById = asyncHandler(async (req, res) => {
   );
 
   const item = items[0];
+  const status = await getLostItemStatus(item.lost_item_id);
+
   const formattedItem = {
     ...item,
+    status,
     photos: photos.map(p => p.photo_url),
     user: {
       name: item.user_name,
@@ -77,8 +90,7 @@ export const getLostItemById = asyncHandler(async (req, res) => {
   res.status(200).json({ item: formattedItem });
 });
 
-// Get All Lost Items (with photos)
-// Get All Lost Items (with photos and user)
+// Get All Lost Items
 export const getAllLostItems = asyncHandler(async (req, res) => {
   let {
     page = 1,
@@ -123,8 +135,11 @@ export const getAllLostItems = asyncHandler(async (req, res) => {
       [item.lost_item_id]
     );
 
+    const status = await getLostItemStatus(item.lost_item_id);
+
     const formattedItem = {
       ...item,
+      status,
       photos: photos.map(p => p.photo_url),
       user: {
         name: item.user_name,
@@ -151,9 +166,7 @@ export const getAllLostItems = asyncHandler(async (req, res) => {
   });
 });
 
-
-// Get User's Lost Items (with photos)
-// Get User's Lost Items (with photos and user)
+// Get User's Lost Items
 export const getLostItemByUser = asyncHandler(async (req, res) => {
   const user_id = req.user.user_id;
 
@@ -166,16 +179,17 @@ export const getLostItemByUser = asyncHandler(async (req, res) => {
     ORDER BY l.lost_date DESC
   `, [user_id]);
 
-  if (items.length === 0) throw new ApiError(404, "No items found for this user");
-
   const lostitems = await Promise.all(items.map(async (item) => {
     const [photos] = await db.query(
       `SELECT photo_url FROM lostitemphotos WHERE lost_item_id = ?`,
       [item.lost_item_id]
     );
 
+    const status = await getLostItemStatus(item.lost_item_id);
+
     const formattedItem = {
       ...item,
+      status,
       photos: photos.map(p => p.photo_url),
       user: {
         name: item.user_name,

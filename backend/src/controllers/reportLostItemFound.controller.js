@@ -152,6 +152,72 @@ export const getReportsAboutUserLostItems = asyncHandler(async (req, res) => {
   res.status(200).json({ reports: detailedReports });
 });
 
+export const getItemsById = asyncHandler(async (req, res) => {   
+  const user_id = req.user.user_id;   
+  const { id } = req.params;
+  
+  try {
+    // First check if the lost item exists
+    const [itemRows] = await db.query(
+      `SELECT * FROM lostitems WHERE lost_item_id = ?`,
+      [id]
+    );
+    
+    if (itemRows.length === 0) {
+      return res.status(404).json({ message: "Lost item not found" });
+    }
+    
+    // Get all reports for this lost item
+    const [reports] = await db.query(     
+      `SELECT * FROM reportedlostfound WHERE lost_item_id = ? ORDER BY created_at DESC`,     
+      [id]   
+    );    
+    
+    // Get detailed information for each report
+    const detailedReports = await Promise.all(     
+      reports.map(async (report) => {       
+        // Fetch lost item details       
+        const [lostItems] = await db.query(         
+          `SELECT * FROM lostitems WHERE lost_item_id = ?`,         
+          [report.lost_item_id]       
+        );        
+        
+        const lostItem = lostItems[0] || null;        
+        
+        // If we have a lost item, fetch additional details
+        if (lostItem) {         
+          // Get photos
+          const [photoRows] = await db.query(           
+            `SELECT photo_url FROM lostitemphotos WHERE lost_item_id = ?`,           
+            [lostItem.lost_item_id]         
+          );         
+          const photos = photoRows.map(photo => photo.photo_url);          
+          
+          // Get user who posted the lost item         
+          const [userRows] = await db.query(           
+            `SELECT name, roll_number, phone_number, hostel, room_number FROM users WHERE user_id = ?`,           
+            [lostItem.posted_by]         
+          );          
+          
+          // Add the user and photos to the lost item object
+          lostItem.user = userRows[0] || null;         
+          lostItem.photos = photos;       
+        }        
+        
+        // Return the report with the lost item details
+        return {         
+          ...report,         
+          lost_item: lostItem       
+        };     
+      })   
+    );    
+    
+    res.status(200).json({ reports: detailedReports }); 
+  } catch (error) {
+    console.error("Error fetching lost item reports:", error);
+    res.status(500).json({ message: "Failed to fetch lost item reports" });
+  }
+});
 
 // 2. Delete a Lost Item Found Report
 export const deleteLostItemFound = asyncHandler(async (req, res) => {

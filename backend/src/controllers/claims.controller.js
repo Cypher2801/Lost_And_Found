@@ -12,7 +12,7 @@ export const createClaim = asyncHandler(async (req, res) => {
   const { found_item_id, security_answer_attempt, message } = req.body;
   const claiming_user_id = req.user.user_id;
 
-  if (!found_item_id || !security_answer_attempt) {
+  if (!found_item_id) {
     throw new ApiError(400, "Missing required fields");
   }
 
@@ -25,7 +25,6 @@ export const createClaim = asyncHandler(async (req, res) => {
   res.status(201).json({ message: "Claim submitted successfully" });
 });
 
-// Get Claims for a Specific Item (Admin or Item Owner)
 export const getClaimsForItem = asyncHandler(async (req, res) => {
   const { found_item_id } = req.params;
 
@@ -33,10 +32,12 @@ export const getClaimsForItem = asyncHandler(async (req, res) => {
     `SELECT c.*, 
             f.name AS item_name, f.description AS item_description, f.found_date, f.found_location, 
             f.pickup_location, f.security_question, f.posted_by, f.category_id,
-            u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+            poster.name AS poster_name, poster.roll_number AS poster_roll, poster.phone_number AS poster_phone, poster.hostel AS poster_hostel, poster.room_number AS poster_room,
+            claimer.name AS claimer_name, claimer.roll_number AS claimer_roll, claimer.phone_number AS claimer_phone, claimer.hostel AS claimer_hostel, claimer.room_number AS claimer_room
      FROM Claims c
      JOIN FoundItems f ON c.found_item_id = f.found_item_id
-     JOIN Users u ON f.posted_by = u.user_id
+     JOIN Users poster ON f.posted_by = poster.user_id
+     JOIN Users claimer ON c.claiming_user_id = claimer.user_id
      WHERE c.found_item_id = ?
      ORDER BY c.created_at DESC`,
     [found_item_id]
@@ -45,13 +46,21 @@ export const getClaimsForItem = asyncHandler(async (req, res) => {
   const formattedClaims = claims.map(claim => {
     const {
       item_name, item_description, found_date, found_location, pickup_location, security_question,
-      posted_by, category_id,
-      user_name, roll_number, phone_number, hostel, room_number,
+      category_id, posted_by,
+      poster_name, poster_roll, poster_phone, poster_hostel, poster_room,
+      claimer_name, claimer_roll, claimer_phone, claimer_hostel, claimer_room,
       ...claimData
     } = claim;
 
     return {
       ...claimData,
+      user: {
+        name: claimer_name,
+        roll_number: claimer_roll,
+        phone_number: claimer_phone,
+        hostel: claimer_hostel,
+        room_number: claimer_room
+      },
       foundItem: {
         name: item_name,
         description: item_description,
@@ -62,11 +71,11 @@ export const getClaimsForItem = asyncHandler(async (req, res) => {
         category_id,
         posted_by,
         user: {
-          name: user_name,
-          roll_number,
-          phone_number,
-          hostel,
-          room_number
+          name: poster_name,
+          roll_number: poster_roll,
+          phone_number: poster_phone,
+          hostel: poster_hostel,
+          room_number: poster_room
         }
       }
     };
@@ -75,7 +84,6 @@ export const getClaimsForItem = asyncHandler(async (req, res) => {
   res.status(200).json({ claims: formattedClaims });
 });
 
-// Get All Claims by Logged-in User
 export const getUserClaims = asyncHandler(async (req, res) => {
   const user_id = req.user.user_id;
 
@@ -83,10 +91,12 @@ export const getUserClaims = asyncHandler(async (req, res) => {
     `SELECT c.*, 
             f.name AS item_name, f.description AS item_description, f.found_date, f.found_location, 
             f.pickup_location, f.security_question, f.posted_by, f.category_id,
-            u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+            poster.name AS poster_name, poster.roll_number AS poster_roll, poster.phone_number AS poster_phone, poster.hostel AS poster_hostel, poster.room_number AS poster_room,
+            claimer.name AS claimer_name, claimer.roll_number AS claimer_roll, claimer.phone_number AS claimer_phone, claimer.hostel AS claimer_hostel, claimer.room_number AS claimer_room
      FROM Claims c
      JOIN FoundItems f ON c.found_item_id = f.found_item_id
-     JOIN Users u ON f.posted_by = u.user_id
+     JOIN Users poster ON f.posted_by = poster.user_id
+     JOIN Users claimer ON c.claiming_user_id = claimer.user_id
      WHERE c.claiming_user_id = ?
      ORDER BY c.created_at DESC`,
     [user_id]
@@ -95,12 +105,20 @@ export const getUserClaims = asyncHandler(async (req, res) => {
   const formattedClaims = claims.map(claim => {
     const {
       item_name, item_description, found_date, found_location, pickup_location, security_question, posted_by, category_id,
-      user_name, roll_number, phone_number, hostel, room_number,
+      poster_name, poster_roll, poster_phone, poster_hostel, poster_room,
+      claimer_name, claimer_roll, claimer_phone, claimer_hostel, claimer_room,
       ...claimData
     } = claim;
 
     return {
       ...claimData,
+      user: {
+        name: claimer_name,
+        roll_number: claimer_roll,
+        phone_number: claimer_phone,
+        hostel: claimer_hostel,
+        room_number: claimer_room
+      },
       foundItem: {
         name: item_name,
         description: item_description,
@@ -111,11 +129,11 @@ export const getUserClaims = asyncHandler(async (req, res) => {
         category_id,
         posted_by,
         user: {
-          name: user_name,
-          roll_number,
-          phone_number,
-          hostel,
-          room_number
+          name: poster_name,
+          roll_number: poster_roll,
+          phone_number: poster_phone,
+          hostel: poster_hostel,
+          room_number: poster_room
         }
       }
     };
@@ -124,7 +142,6 @@ export const getUserClaims = asyncHandler(async (req, res) => {
   res.status(200).json({ claims: formattedClaims });
 });
 
-// Get Claim by ID
 export const getClaimById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -132,10 +149,12 @@ export const getClaimById = asyncHandler(async (req, res) => {
     `SELECT c.*, 
             f.name AS item_name, f.description AS item_description, f.found_date, f.found_location, 
             f.pickup_location, f.security_question, f.posted_by, f.category_id,
-            u.name AS user_name, u.roll_number, u.phone_number, u.hostel, u.room_number
+            poster.name AS poster_name, poster.roll_number AS poster_roll, poster.phone_number AS poster_phone, poster.hostel AS poster_hostel, poster.room_number AS poster_room,
+            claimer.name AS claimer_name, claimer.roll_number AS claimer_roll, claimer.phone_number AS claimer_phone, claimer.hostel AS claimer_hostel, claimer.room_number AS claimer_room
      FROM Claims c
      JOIN FoundItems f ON c.found_item_id = f.found_item_id
-     JOIN Users u ON f.posted_by = u.user_id
+     JOIN Users poster ON f.posted_by = poster.user_id
+     JOIN Users claimer ON c.claiming_user_id = claimer.user_id
      WHERE c.claim_id = ?`,
     [id]
   );
@@ -146,13 +165,21 @@ export const getClaimById = asyncHandler(async (req, res) => {
   const {
     item_name, item_description, found_date, found_location, pickup_location,
     security_question, posted_by, category_id,
-    user_name, roll_number, phone_number, hostel, room_number,
+    poster_name, poster_roll, poster_phone, poster_hostel, poster_room,
+    claimer_name, claimer_roll, claimer_phone, claimer_hostel, claimer_room,
     ...claimData
   } = claim;
 
   res.status(200).json({
     claim: {
       ...claimData,
+      user: {
+        name: claimer_name,
+        roll_number: claimer_roll,
+        phone_number: claimer_phone,
+        hostel: claimer_hostel,
+        room_number: claimer_room
+      },
       foundItem: {
         name: item_name,
         description: item_description,
@@ -163,11 +190,11 @@ export const getClaimById = asyncHandler(async (req, res) => {
         category_id,
         posted_by,
         user: {
-          name: user_name,
-          roll_number,
-          phone_number,
-          hostel,
-          room_number
+          name: poster_name,
+          roll_number: poster_roll,
+          phone_number: poster_phone,
+          hostel: poster_hostel,
+          room_number: poster_room
         }
       }
     }

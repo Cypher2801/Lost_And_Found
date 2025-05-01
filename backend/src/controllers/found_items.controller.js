@@ -139,7 +139,7 @@ export const updatePickupPlace = asyncHandler(async (req, res) => {
   res.status(200).json({ message: "Pickup location updated successfully" });
 });
 
-// Get User's Found Items
+// Get Found Items Posted by Logged-in User
 export const getUserFoundItems = asyncHandler(async (req, res) => {
   const user_id = req.user.user_id;
 
@@ -159,8 +159,13 @@ export const getUserFoundItems = asyncHandler(async (req, res) => {
       [item.found_item_id]
     );
 
-    item.photos = photos.map(photo => photo.photo_url);
+    const [claims] = await db.query(
+      "SELECT 1 FROM claims WHERE found_item_id = ? AND status = 'Approved' LIMIT 1",
+      [item.found_item_id]
+    );
 
+    item.photos = photos.map(photo => photo.photo_url);
+    item.status = claims.length > 0 ? "Resolved" : "Pending";
     item.user = {
       name: item.user_name,
       roll_number: item.roll_number,
@@ -180,7 +185,7 @@ export const getUserFoundItems = asyncHandler(async (req, res) => {
 });
 
 
-// Get Found Item by ID (with photos)
+// Get Found Item by ID
 export const getFoundItemById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -200,11 +205,17 @@ export const getFoundItemById = asyncHandler(async (req, res) => {
     [id]
   );
 
+  const [claims] = await db.query(
+    "SELECT 1 FROM claims WHERE found_item_id = ? AND status = 'Approved' LIMIT 1",
+    [id]
+  );
+
   const item = items[0];
 
   const formattedItem = {
     ...item,
     photos: photos.map(photo => photo.photo_url),
+    status: claims.length > 0 ? "Resolved" : "Pending",
     user: {
       name: item.user_name,
       roll_number: item.roll_number,
@@ -224,8 +235,7 @@ export const getFoundItemById = asyncHandler(async (req, res) => {
 });
 
 
-
-// Get All Found Items (without photos for now, or optionally photos if needed)
+// Get All Found Items with Pagination, Search, and Status
 export const getAllFoundItems = asyncHandler(async (req, res) => {
   let {
     page = 1,
@@ -270,8 +280,13 @@ export const getAllFoundItems = asyncHandler(async (req, res) => {
       [item.found_item_id]
     );
 
-    item.photos = photos.map(photo => photo.photo_url);
+    const [claims] = await db.query(
+      "SELECT 1 FROM claims WHERE found_item_id = ? AND status = 'Approved' LIMIT 1",
+      [item.found_item_id]
+    );
 
+    item.photos = photos.map(photo => photo.photo_url);
+    item.status = claims.length > 0 ? "Resolved" : "Pending";
     item.user = {
       name: item.user_name,
       roll_number: item.roll_number,
@@ -293,8 +308,6 @@ export const getAllFoundItems = asyncHandler(async (req, res) => {
     items
   });
 });
-
-
 
 // Update Security Question and Answer
 export const updateFoundItemSecurityQA = asyncHandler(async (req, res) => {

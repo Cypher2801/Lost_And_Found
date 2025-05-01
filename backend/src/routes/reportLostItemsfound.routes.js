@@ -7,7 +7,8 @@ import {
   getItemsReportedByUser,
   getReportsAboutUserLostItems,
   deleteLostItemFound,
-  updateReportedLostFoundStatus
+  updateReportedLostFoundStatus,
+  getItemsById
 } from "../controllers/reportLostItemFound.controller.js";
 
 const router = express.Router();
@@ -21,6 +22,7 @@ router.get("/reported-by-user", verifyJWT, getItemsReportedByUser);
 // Route to get all reports about user's own lost items
 router.get("/about-user-lost-items", verifyJWT, getReportsAboutUserLostItems);
 
+router.get("/item/:id" ,verifyJWT, getItemsById)
 // Route to delete a lost item found report
 router.delete("/:id", verifyJWT, deleteLostItemFound);
 
